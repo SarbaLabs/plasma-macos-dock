@@ -27,12 +27,18 @@ DockBlurItem::DockBlurItem(QQuickItem *parent)
         updateBlurRegion();
         m_trackedWindow->update();
     });
+    connect(this, &QQuickItem::windowChanged, this, &DockBlurItem::trackWindow);
+    trackWindow(window());
 }
 
 DockBlurItem::~DockBlurItem()
 {
+    m_restoreTimer.stop();
+    // QQuickItem emits windowChanged while detaching in its base destructor.
+    disconnect(this, &QQuickItem::windowChanged, this, &DockBlurItem::trackWindow);
     if (m_trackedWindow) {
         m_trackedWindow->removeEventFilter(this);
+        disconnect(m_trackedWindow.data(), nullptr, this, nullptr);
     }
     clearBlurRegion();
 }
@@ -111,29 +117,35 @@ void DockBlurItem::setIntensity(qreal val)
     }
 }
 
+void DockBlurItem::trackWindow(QQuickWindow *newWindow)
+{
+    if (m_trackedWindow == newWindow) {
+        return;
+    }
+    if (m_trackedWindow) {
+        m_trackedWindow->removeEventFilter(this);
+        disconnect(m_trackedWindow.data(), nullptr, this, nullptr);
+        clearBlurRegion();
+    }
+    m_restoreTimer.stop();
+    m_lastAppliedRect = QRect();
+    m_effectsApplied = false;
+    m_surfaceBeingDestroyed = false;
+    m_trackedWindow = newWindow;
+    if (m_trackedWindow) {
+        m_trackedWindow->installEventFilter(this);
+        connect(m_trackedWindow.data(), &QWindow::visibleChanged, this, &DockBlurItem::scheduleBlurRestore);
+        // afterAnimating runs on the GUI thread, including with the threaded
+        // render loop. Keep tracking ancestor transforms without KWin writes
+        // when the mapped rectangle has not changed.
+        connect(m_trackedWindow.data(), &QQuickWindow::afterAnimating, this, &DockBlurItem::updateBlurRegion);
+        scheduleBlurRestore();
+    }
+}
+
 void DockBlurItem::itemChange(ItemChange change, const ItemChangeData &value)
 {
-    if (change == ItemSceneChange) {
-        if (m_trackedWindow) {
-            m_trackedWindow->removeEventFilter(this);
-            disconnect(m_trackedWindow.data(), nullptr, this, nullptr);
-            clearBlurRegion();
-        }
-        m_restoreTimer.stop();
-        m_lastAppliedRect = QRect();
-        m_effectsApplied = false;
-        m_surfaceBeingDestroyed = false;
-        m_trackedWindow = window();
-        if (m_trackedWindow) {
-            m_trackedWindow->installEventFilter(this);
-            connect(m_trackedWindow.data(), &QWindow::visibleChanged, this, &DockBlurItem::scheduleBlurRestore);
-            // afterAnimating runs on the GUI thread, including with the threaded
-            // render loop. Keep tracking ancestor transforms without KWin writes
-            // when the mapped rectangle has not changed.
-            connect(m_trackedWindow.data(), &QQuickWindow::afterAnimating, this, &DockBlurItem::updateBlurRegion);
-            scheduleBlurRestore();
-        }
-    } else if (change == ItemVisibleHasChanged) {
+    if (change == ItemVisibleHasChanged) {
         updateBlurRegion();
     }
     QQuickItem::itemChange(change, value);
@@ -145,11 +157,15 @@ bool DockBlurItem::eventFilter(QObject *watched, QEvent *event)
         switch (event->type()) {
         case QEvent::PlatformSurface: {
             const auto *surfaceEvent = static_cast<QPlatformSurfaceEvent *>(event);
-            m_surfaceBeingDestroyed = surfaceEvent->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed;
-            if (m_surfaceBeingDestroyed) {
+            if (surfaceEvent->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {
                 m_restoreTimer.stop();
-                m_lastAppliedRect = QRect();
+                // The surface is still valid during this notification. Remove
+                // remembered requests before teardown, including if this item
+                // is deleted before the window creates another surface.
+                clearBlurRegion();
+                m_surfaceBeingDestroyed = true;
             } else {
+                m_surfaceBeingDestroyed = false;
                 scheduleBlurRestore();
             }
             break;

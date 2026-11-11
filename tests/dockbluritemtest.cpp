@@ -5,6 +5,7 @@
 #include <QGuiApplication>
 #include <QHash>
 #include <QPainterPath>
+#include <QPlatformSurfaceEvent>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickWindow>
@@ -131,6 +132,16 @@ private Q_SLOTS:
         effects[&first].blur = false;
         QExposeEvent exposed(QRegion(0, 0, 300, 100));
         QCoreApplication::sendEvent(&first, &exposed);
+        QTRY_VERIFY(effects[&first].blur);
+        QPlatformSurfaceEvent tearingDown(QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed);
+        QCoreApplication::sendEvent(&first, &tearingDown);
+        QVERIFY(!effects[&first].blur);
+        const int writesDuringTeardown = effects[&first].writes;
+        item->scheduleBlurRestore();
+        QTest::qWait(10);
+        QCOMPARE(effects[&first].writes, writesDuringTeardown);
+        QPlatformSurfaceEvent created(QPlatformSurfaceEvent::SurfaceCreated);
+        QCoreApplication::sendEvent(&first, &created);
         QTRY_VERIFY(effects[&first].blur);
         item->scheduleBlurRestore();
         item->setParentItem(second.contentItem());

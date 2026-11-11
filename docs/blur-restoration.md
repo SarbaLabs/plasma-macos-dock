@@ -77,6 +77,10 @@ when Plasma changes its panel implementation.
 Pending work is stopped on window transfer/surface teardown. QPointer protects
 window destruction; timer callbacks belong to the item and all geometry and
 effect operations run on its GUI thread. Disabled/invisible items clear effects.
+Tracking starts for an already attached constructor parent as well as subsequent
+windowChanged notifications; the self-connection is removed before QQuickItem's
+base destructor detaches the item. Surface teardown clears remembered effects
+while the surface is still valid.
 The existing optional loader and pure-QML fallback are unchanged. A method guard
 also tolerates updating the QML package before updating the native plugin.
 
@@ -96,11 +100,20 @@ Thread checks reject effect calls outside the GUI thread.
 The fake backend verifies requests, not compositor rendering. It cannot prove
 visual correctness, Wayland surface timing or Better Blur DX compatibility.
 
-Local editing environment: Debian 13, no CMake or Qt/KF development headers.
-Local compilation could not run; package installation was unavailable.
-Whitespace checks passed. The Blur lifecycle checks workflow builds the real
-plugin and runs the tests offscreen in Debian trixie with Qt 6/KF6.
-Consult the pull request checks for the actual execution result.
+Local validation completed on Debian 13 using dependencies extracted into an
+isolated directory (no system installation): GCC 14.2, CMake 3.31.6, Qt 6.8.2,
+KWindowSystem 6.13.0. Debug compilation of both the real native plugin and test
+executable passed. CTest passed 1/1 executable (three regression cases plus
+QtTest setup/cleanup), 0 failures, in 1.26 seconds using Qt's offscreen platform
+and software renderer. Whitespace and workflow YAML parsing checks passed.
+The tests caught constructor-parent tracking and destructor connection problems
+during development; both were corrected before the successful run.
+
+The Blur lifecycle checks workflow reproduces the build and offscreen tests in
+Debian trixie. No GitHub workflow execution was reported after the initial
+branch push; local results above are independent of GitHub Actions availability.
+No real Plasma/KWin, hardware rendering, threaded render loop or CachyOS visual
+acceptance test has been performed in this environment.
 
 ## CachyOS: update an existing installation
 

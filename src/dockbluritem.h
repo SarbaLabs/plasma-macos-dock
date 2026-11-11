@@ -61,6 +61,7 @@ public Q_SLOTS:
 
 private:
     void clearBlurRegion();
+    void trackWindow(QQuickWindow *newWindow);
 
     bool m_blurEnabled = true;
     qreal m_cornerRadius = 0.0;
