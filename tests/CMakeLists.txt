@@ -4,7 +4,7 @@ add_executable(dockbluritemtest
     ../src/dockbluritem.h
 )
 target_include_directories(dockbluritemtest PRIVATE fakes ../src)
-target_link_libraries(dockbluritemtest PRIVATE Qt6::Quick Qt6::Qml Qt6::Test)
+target_link_libraries(dockbluritemtest PRIVATE Qt6::Quick Qt6::Qml Qt6::Test Plasma::Plasma)
 target_compile_definitions(dockbluritemtest PRIVATE DOCK_QML_DIR="${CMAKE_SOURCE_DIR}/contents/ui")
 add_test(NAME dockbluritem COMMAND dockbluritemtest)
 set_tests_properties(dockbluritem PROPERTIES

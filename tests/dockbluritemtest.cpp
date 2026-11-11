@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "dockbluritem.h"
 #include <KWindowEffects>
+#include <Plasma/Theme>
 #include <QExposeEvent>
 #include <QGuiApplication>
 #include <QHash>
@@ -187,6 +188,102 @@ private Q_SLOTS:
         // Remove the QML item before its window; also covers loader teardown.
         object.reset();
         QVERIFY(!effects[&window].blur);
+    }
+
+    void themeChangesWhileStationary_data()
+    {
+        QTest::addColumn<bool>("panelConnectsFirst");
+        QTest::newRow("panel-before-dock") << true;
+        QTest::newRow("panel-after-dock") << false;
+    }
+
+    void themeChangesWhileStationary()
+    {
+        QFETCH(bool, panelConnectsFirst);
+        QQuickWindow window;
+        window.resize(300, 100);
+        std::unique_ptr<Plasma::Theme> panelTheme;
+        int panelResets = 0;
+        const auto connectPanel = [&] {
+            panelTheme = std::make_unique<Plasma::Theme>();
+            // Match PanelView: theme updates clear NoBackground effects even
+            // when window visibility, the mask and capsule geometry stay put.
+            connect(panelTheme.get(), &Plasma::Theme::themeChanged, &window, [&] {
+                KWindowEffects::enableBlurBehind(&window, false);
+                KWindowEffects::enableBackgroundContrast(&window, false);
+                ++panelResets;
+            });
+        };
+        if (panelConnectsFirst) {
+            connectPanel();
+        }
+        DockBlurItem item(window.contentItem());
+        item.setSize(QSizeF(180, 50));
+        item.setPosition(QPointF(30, 20));
+        item.setCornerRadius(15);
+        item.setSaturation(1.4);
+        item.setContrast(0.8);
+        item.setIntensity(1.2);
+        if (!panelConnectsFirst) {
+            connectPanel();
+        }
+        window.show();
+        QTRY_VERIFY(window.isExposed());
+        QTRY_VERIFY(effects[&window].blur);
+        const QRegion expected = effects[&window].region;
+
+        const auto changePalette = [] {
+            // Exercise libplasma's real deferred colorsChanged -> themeChanged
+            // path, without changing the test process's actual palette.
+            QEvent paletteChange(QEvent::ApplicationPaletteChange);
+            QCoreApplication::sendEvent(qGuiApp, &paletteChange);
+        };
+        for (int cycle = 0; cycle < 20; ++cycle) {
+            const int previousResets = panelResets;
+            changePalette();
+            QTRY_VERIFY(panelResets > previousResets);
+            QTRY_VERIFY(effects[&window].blur && effects[&window].contrast);
+            QCOMPARE(effects[&window].region, expected);
+            QCOMPARE(effects[&window].contrastRegion, expected);
+            QCOMPARE(effects[&window].saturation, 1.4);
+            QCOMPARE(effects[&window].contrastValue, 0.8);
+            QCOMPARE(effects[&window].intensity, 1.2);
+            QCOMPARE(item.position(), QPointF(30, 20));
+            QCOMPARE(item.size(), QSizeF(180, 50));
+        }
+
+        window.hide();
+        QCoreApplication::processEvents();
+        int previousResets = panelResets;
+        changePalette();
+        QTRY_VERIFY(panelResets > previousResets);
+        QTest::qWait(20);
+        QVERIFY(!effects[&window].blur && !effects[&window].contrast);
+        window.show();
+        QTRY_VERIFY(effects[&window].blur && effects[&window].contrast);
+
+        // A palette notification may arrive after a panel-animation restore.
+        previousResets = panelResets;
+        item.scheduleBlurRestore();
+        QTimer::singleShot(0, &window, changePalette);
+        QTRY_VERIFY(panelResets > previousResets);
+        QTRY_VERIFY(effects[&window].blur && effects[&window].contrast);
+
+        item.setBlurEnabled(false);
+        previousResets = panelResets;
+        changePalette();
+        QTRY_VERIFY(panelResets > previousResets);
+        QTest::qWait(20);
+        QVERIFY(!effects[&window].blur && !effects[&window].contrast);
+        item.setBlurEnabled(true);
+        QTRY_VERIFY(effects[&window].blur);
+        QTest::qWait(20);
+        const int writes = effects[&window].writes;
+        for (int frame = 0; frame < 10; ++frame) {
+            window.update();
+            QTest::qWait(2);
+        }
+        QCOMPARE(effects[&window].writes, writes);
     }
 };
 

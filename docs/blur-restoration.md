@@ -121,7 +121,7 @@ Save any unrelated local source edits before checking out the branch. Keep your
 existing panel and dock settings; do not remove/re-add the widget.
 
 ```bash
-paru -S --needed git cmake gcc make extra-cmake-modules qt6-base qt6-declarative kwindowsystem
+paru -S --needed git cmake gcc make extra-cmake-modules qt6-base qt6-declarative kwindowsystem libplasma
 git clone --branch fix/blur-after-panel-restore https://github.com/SarbaLabs/plasma-macos-dock.git plasma-macos-dock-blur-fix
 cd plasma-macos-dock-blur-fix
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_PLUGIN_ONLY=ON -DBUILD_TESTING=ON
@@ -200,3 +200,134 @@ whether the panel window actually became unexposed. The unverified possibilities
 include Plasma changing its panel properties or another widget overwriting
 effects after the queued pass. Do not replace event handling with a permanent
 polling timer to conceal such a failure.
+
+## Follow-up: wallpaper-derived accent colors (2026-11-12)
+
+### User validation and newly isolated trigger
+
+The maintainer installed the first fix on CachyOS / Plasma 6.8 / Wayland and
+confirmed that the original hide/show bug is resolved. The first GitHub Actions
+build/test also passed (run 43054923570). The initial validation history above is
+retained; it did not cover wallpaper-driven palette changes.
+
+The remaining failure occurs on the built-in wallpaper slideshow, **only when
+wallpaper-derived accent colors are enabled**, as confirmed by the maintainer.
+The visible dock loses blur until hover or panel/window interaction. Wallpaper
+changes with that accent option disabled do not reproduce the reported issue.
+
+### Source-verified mechanism
+
+1. [ImageStackView.replaceWhenLoaded](https://github.com/KDE/plasma-workspace/blob/master/wallpapers/image/imagepackage/contents/ui/ImageStackView.qml)
+   updates the wallpaper accent color when the new image is activated.
+2. [DesktopView::setAccentColorFromWallpaper](https://github.com/KDE/plasma-workspace/blob/master/shell/desktopview.cpp)
+   sends the accent color to the accent-color service when this feature applies.
+3. [AccentColorService::setAccentColor](https://github.com/KDE/plasma-workspace/blob/master/kcms/colors/accentColorService/accentColorService.cpp)
+   applies the color scheme and broadcasts PaletteChanged. It also starts
+   KWin's BlendChanges animation; this is not itself evidence of lost blur state.
+4. [ThemePrivate::eventFilter / colorsChanged](https://github.com/KDE/libplasma/blob/master/src/plasma/private/theme_p.cpp)
+   handles ApplicationPaletteChange and schedules a deferred themeChanged
+   notification. [Plasma::Theme](https://github.com/KDE/libplasma/blob/master/src/plasma/theme.cpp)
+   instances forward the shared theme's notification.
+5. PanelView connects its themeChanged signal directly to updateMask. With the
+   dock's NoBackground containment, updateMask disables both blur and contrast.
+   It need not change the QML panelMask property, visibility or capsule geometry.
+6. None of the previous restore triggers observes that theme notification.
+   The rectangle cache remains unchanged, so normal geometry checks do not
+   repair the externally cleared effects.
+
+This extends the original shared-window-effect invalidation diagnosis, but the
+new trigger is a **deferred palette/theme update**, not a hide/show event.
+Listening only to ApplicationPaletteChange could restore too early, before
+Plasma's own deferred update clears the effects again.
+
+Also inspected KWin's blur surface-state tracking and BlendChanges effect:
+the latter temporarily redirects windows for a cross-fade and then unredirects
+them; it does not call KWindowEffects to disable the client's blur request.
+There is no evidence here that every wallpaper transition discards panel
+surfaces or requires reapplying effects unconditionally.
+
+Additional inspected source blob IDs: ThemePrivate
+fcba0a277e955559e8afe05f08660f910ece72cd; Theme
+ad5c1badc1d93786bf17f02389d11b9956126aa2; DesktopView
+271fe12d410364493541af557b45b36e1ebcda67; KWin Blur
+f81c64429c90978c721720c2786decd7130e9c71; BlendChanges
+fc163a2f808c3a2b7b49138475dea83cb6871638.
+These are inspected upstream snapshots, not runtime traces from the user's
+installation. The user's accent-color A/B observation corroborates the path.
+
+### Minimal implementation extension
+
+Each native DockBlurItem owns a Plasma::Theme observer, connected to the existing
+scheduleBlurRestore slot. Its zero-delay, single-shot queue runs after the
+synchronous theme notification fan-out, regardless of whether PanelView or the
+dock receives the signal first. Further theme notifications schedule their own
+coalesced pass. The previous visibility, surface, mask and floating-state
+handling is preserved.
+
+No new polling, wallpaper listener, hour-based timer, animation delay or QML
+change is introduced. Hidden/disabled items remain subject to the existing
+guards, and exposure restores the current region when the panel returns.
+The QObject-owned observer is disconnected/destroyed with the native item.
+
+The native build now links Plasma::Plasma. libplasma development packages were
+already listed in README; CMake and CI now require them explicitly. Config and
+CoreAddons are discovered explicitly for older Plasma CMake exports. Pure-QML
+installations still need no native build or extra QML import.
+
+### Regression results and limits
+
+- Before adding the observer, both new data rows failed: a real libplasma
+  ApplicationPaletteChange -> deferred themeChanged caused the simulated
+  NoBackground panel handler to clear effects, with no restoration.
+- After adding it, the real plugin and regression executable compiled in Debug.
+  Full CTest passed 1/1 executable in 8.59 seconds: five regression rows plus
+  setup/cleanup, 7 QtTest passes, 0 failures.
+- Environment: Debian 13, GCC 14.2, Qt 6.8.2, KF6 6.13.0, libplasma 6.3.5,
+  offscreen/software rendering. KWindowSystem's missing offscreen platform
+  plugin warning is expected; effect requests are recorded by the test backend.
+- The new test uses the real Plasma theme notification machinery, with the
+  simulated panel theme connected both before and after the native dock's
+  theme. Each order checks 20 stationary palette cycles without pointer events,
+  rounded regions and non-default tuning, updates while hidden, an update after
+  a queued panel restoration, disabled blur and no effect writes on idle frames.
+- All earlier hide/show, exposure, surface, window-transfer and QML bridge tests
+  still pass. Whitespace checks pass.
+
+This is not a real wallpaper slideshow or KWin rendering test. The new fix still
+requires CachyOS visual validation for both System Blur and Liquid Glass, actual
+overlapping floating animations, Better Blur DX and pure-QML fallback. The prior
+hide/show behavior is user-confirmed; do not infer that all other checklist items
+were tested. No changes to geometry, styling, magnification or version numbers.
+
+### Update the already-tested installation
+
+For the maintainer's existing ~/git/plasma-macos-dock checkout:
+
+```bash
+cd ~/git/plasma-macos-dock
+git switch fix/blur-after-panel-restore
+git pull --ff-only origin fix/blur-after-panel-restore
+paru -S --needed libplasma
+./install.sh --plugin-only
+ctest --test-dir build --output-on-failure
+```
+
+This follow-up changes only native runtime behavior; the previously installed
+QML bridge stays valid. The existing install script compiles in Release and
+replaces the native module under /usr using sudo. Keep the backup/prefix/package
+ownership precautions described earlier if the original module was installed
+elsewhere or belongs to a package. No removal/re-addition of the widget is needed.
+
+Accept the install script's Plasma Shell restart prompt, or restart once after
+installation with `systemctl --user restart plasma-plasmashell.service`.
+A restart is required to unload the previous shared library.
+
+To test without waiting an hour, use the built-in slideshow's **Next Wallpaper
+Image** contextual action on the desktop. Keep the pointer away from the dock.
+With wallpaper-derived accent colors enabled, advance through images with
+different dominant colors at least 20 times, allowing each transition to finish;
+also test a few rapid advances. Repeat in System Blur and Liquid Glass, with the
+panel visible, hidden behind a window, and during floating/overlap transitions.
+Check ordinary theme/color changes as well. The accent-disabled case is a useful
+control, not a workaround. Record the exact Plasma/Qt/KF versions and any remaining
+flicker or loss; visual success is pending the maintainer's confirmation.

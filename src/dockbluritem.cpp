@@ -6,6 +6,7 @@
 #include "dockbluritem.h"
 
 #include <KWindowEffects>
+#include <Plasma/Theme>
 #include <QPainterPath>
 #include <QPlatformSurfaceEvent>
 #include <QQuickWindow>
@@ -27,6 +28,12 @@ DockBlurItem::DockBlurItem(QQuickItem *parent)
         updateBlurRegion();
         m_trackedWindow->update();
     });
+    // PanelView clears NoBackground effects on this same deferred notification,
+    // including wallpaper-derived accent palette changes with a stationary panel.
+    // Listen to the shared Plasma theme, not the earlier application palette
+    // event: Plasma may otherwise clear the effects after our restoration.
+    auto *theme = new Plasma::Theme(this);
+    connect(theme, &Plasma::Theme::themeChanged, this, &DockBlurItem::scheduleBlurRestore);
     connect(this, &QQuickItem::windowChanged, this, &DockBlurItem::trackWindow);
     trackWindow(window());
 }

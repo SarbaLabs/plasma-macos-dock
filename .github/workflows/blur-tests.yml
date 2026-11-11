@@ -14,7 +14,7 @@ jobs:
       - name: Install build and test dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends ca-certificates git cmake g++ make extra-cmake-modules qt6-base-dev qt6-declarative-dev libkf6windowsystem-dev qml6-module-qtquick qml6-module-qtqml-workerscript
+          apt-get install -y --no-install-recommends ca-certificates git cmake g++ make extra-cmake-modules qt6-base-dev qt6-declarative-dev libkf6windowsystem-dev libplasma-dev qml6-module-qtquick qml6-module-qtqml-workerscript
       - uses: actions/checkout@v4
       - name: Build native plugin and regression tests
         run: |

@@ -8,6 +8,9 @@
 - The optional C++ blur plugin must remain optional for pure-QML installations.
 - Window effects are shared window state. Keep Qt Quick item access and
   KWindowEffects calls on the GUI thread; avoid unconditional per-frame writes.
+- Plasma theme changes can clear NoBackground effects without any geometry or
+  visibility notification. Restore after Plasma::Theme::themeChanged through
+  the existing coalesced queue, not directly on an earlier palette event.
 - See docs/blur-restoration.md for evidence, lifecycle decisions, validation
   limits, deployment instructions and the pending KWin acceptance checklist.
 - Keep unrelated panel geometry, dodge policy and magnification changes separate.
