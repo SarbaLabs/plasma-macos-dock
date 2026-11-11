@@ -19,6 +19,12 @@ include(FeatureSummary)
 find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Core Quick Gui Qml)
 find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS WindowSystem)
 
+include(CTest)
+if(BUILD_TESTING)
+    find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Test)
+    add_subdirectory(tests)
+endif()
+
 # Single self-contained QML extension plugin library
 add_library(dockblurplugin SHARED
     src/blurplugin.h
@@ -67,3 +73,4 @@ if(NOT BUILD_PLUGIN_ONLY)
         RENAME com.github.mattanis.macosdock.png
     )
 endif()
+
