@@ -14,3 +14,7 @@
 - See docs/blur-restoration.md for evidence, lifecycle decisions, validation
   limits, deployment instructions and the pending KWin acceptance checklist.
 - Keep unrelated panel geometry, dodge policy and magnification changes separate.
+- Application context menus use a separate optional native module. See
+  docs/application-context-menus.md. Preserve ContextMenu.qml's Pin/Unpin and
+  Test Bounce Animation handlers; never instantiate Plasma's full private Backend
+  or concatenate shell command strings for Places/recents.

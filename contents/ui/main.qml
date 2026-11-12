@@ -571,6 +571,11 @@ PlasmoidItem {
         id: backend
 
         signal addLauncher(url url)
+        signal showAllPlaces()
+
+        readonly property ApplicationMenuBridge applicationMenus: ApplicationMenuBridge {
+            onShowAllPlaces: backend.showAllPlaces()
+        }
 
         readonly property int none: 0
         readonly property int close: 1
@@ -600,15 +605,15 @@ PlasmoidItem {
         }
 
         function jumpListActions(launcherUrl, parent) {
-            return [];
+            return applicationMenus.jumpListActions(launcherUrl, parent);
         }
 
         function placesActions(launcherUrl, showAllPlaces, parent) {
-            return [];
+            return applicationMenus.placesActions(launcherUrl, showAllPlaces, parent);
         }
 
         function recentDocumentActions(launcherUrl, parent) {
-            return [];
+            return applicationMenus.recentDocumentActions(launcherUrl, parent);
         }
 
         function setActionGroup(action) {}

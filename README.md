@@ -53,7 +53,9 @@ The easiest way to get macOS Dock is directly through Plasma's built-in widget i
 You can clone the repository directly into your local plasmoids folder with zero build dependencies:
 
 ```bash
-git clone https://github.com/Matt-Anis/plasma-macos-dock.git ~/.local/share/plasma/plasmoids/com.github.mattanis.macosdock
+mkdir -p ~/git
+cd ~/git
+git clone https://github.com/SarbaLabs/plasma-macos-dock.git ~/.local/share/plasma/plasmoids/com.github.mattanis.macosdock
 systemctl --user restart plasma-plasmashell
 ```
 
@@ -67,31 +69,31 @@ kpackagetool6 --type Plasma/Applet --install com.github.mattanis.macosdock.plasm
 > **Recommended Panel Sizing**: We recommend setting your Plasma panel thickness (height for bottom/top panels, width for left/right panels) to **100px** to provide ideal headroom for hover magnification and lift elevation (or check **Auto-adjust panel thickness** in dock settings).
 
 > [!NOTE]
-> Installing from the KDE Store, downloading the `.plasmoid` bundle, or cloning directly into your plasmoids folder runs the widget in **pure QML mode**. All features (continuous magnification wave, animations, padding, edge elevation, translucent glass styles, and native shortcuts) work out of the box with zero compilation or build dependencies. The separate `without-blur` branch has been retired as this main codebase now natively supports pure QML mode with optional hardware blur.
+> Installing from the KDE Store, downloading the `.plasmoid` bundle, or cloning directly into your plasmoids folder runs the widget in **pure QML mode**. Core features (continuous magnification wave, animations, padding, edge elevation, translucent glass styles, and native shortcuts) work out of the box with zero compilation or build dependencies. The separate `without-blur` branch has been retired as this main codebase now natively supports pure QML mode with optional hardware blur and native application menus. Desktop actions, KDE Places and recent documents require the optional native menu module. Pin/Unpin, Test Bounce Animation and existing window actions remain available without it.
 
 ---
 
-### Option 2: Enable Hardware KWin Blur (Optional — Build from Source)
+### Option 2: Enable Native Blur and Application Menus (Optional — Build from Source)
 
-For real hardware-accelerated KWin background blur behind the capsule, compile and install the optional C++ blur plugin.
+Compile the optional C++ modules for hardware-accelerated background blur and application context menus (desktop actions, KDE Places and recent documents). See [the menu integration guide](docs/application-context-menus.md) for architecture and validation.
 
 #### 1. Install Build Dependencies for Your Distribution
 
 * **Fedora / RHEL**:
   ```bash
-  sudo dnf install cmake gcc-c++ extra-cmake-modules qt6-qtbase-devel qt6-qtdeclarative-devel kf6-kwindowsystem-devel libplasma-devel
+  sudo dnf install cmake gcc-c++ python3 extra-cmake-modules qt6-qtbase-devel qt6-qtdeclarative-devel kf6-kwindowsystem-devel libplasma-devel kf6-kio-devel kf6-kservice-devel kf6-ki18n-devel kf6-knotifications-devel plasma-activities-stats-devel
   ```
-* **Arch Linux / Manjaro / EndeavourOS**:
+* **CachyOS / Arch Linux / Manjaro / EndeavourOS**:
   ```bash
-  sudo pacman -S --needed cmake gcc extra-cmake-modules qt6-base qt6-declarative kwindowsystem libplasma
+  paru -S --needed cmake gcc python extra-cmake-modules qt6-base qt6-declarative kwindowsystem libplasma kio kservice ki18n knotifications plasma-activities-stats
   ```
 * **Ubuntu / Debian / Pop!_OS**:
   ```bash
-  sudo apt install cmake build-essential extra-cmake-modules qt6-base-dev qt6-declarative-dev libkf6windowsystem-dev libplasma-dev
+  sudo apt install cmake build-essential python3 extra-cmake-modules qt6-base-dev qt6-declarative-dev libkf6windowsystem-dev libplasma-dev libkf6kio-dev libkf6service-dev libkf6i18n-dev libkf6notifications-dev libplasmaactivitiesstats-dev
   ```
 * **openSUSE**:
   ```bash
-  sudo zypper install cmake gcc-c++ extra-cmake-modules qt6-base-devel qt6-declarative-devel kf6-kwindowsystem-devel libplasma6-devel
+  sudo zypper install cmake gcc-c++ python3 extra-cmake-modules qt6-base-devel qt6-declarative-devel kf6-kwindowsystem-devel libplasma6-devel kf6-kio-devel kf6-kservice-devel kf6-ki18n-devel kf6-knotifications-devel plasma6-activities-stats-devel
   ```
 
 #### 2. Compile and Install
@@ -99,15 +101,16 @@ For real hardware-accelerated KWin background blur behind the capsule, compile a
 Clone the repository and build:
 
 ```bash
-git clone https://github.com/Matt-Anis/plasma-macos-dock.git
+mkdir -p ~/git
+cd ~/git
+git clone https://github.com/SarbaLabs/plasma-macos-dock.git
 cd plasma-macos-dock
 
-# If you already installed the widget from KDE Store (installs only the blur plugin):
-./install.sh --plugin-only
-
-# Or to build and install everything from source:
+# Build both native modules and install the matching QML:
 ./install.sh
 ```
+
+Use the full installation for this feature, including when upgrading a KDE Store copy. The script also updates a user-installed applet that would otherwise override the system copy. `--plugin-only` remains available for native-only updates when the matching QML is already installed.
 
 *(Alternatively, run standard CMake commands: `cmake -B build -S . && cmake --build build && sudo cmake --install build`)*
 
@@ -144,11 +147,11 @@ This generates `com.github.mattanis.macosdock.plasmoid` in the project root.
 
 ---
 
-### Why C++ Blur Requires Local Compilation (No Universal Installer)
+### Why Native Modules Require Local Compilation (No Universal Installer)
 
 The standard `.plasmoid` widget from the KDE Store / GitHub Releases is 100% pure QML and works out of the box with zero build dependencies.
 
-The optional C++ hardware blur module cannot be distributed via an automated universal installer or pre-compiled binary because development packages and library versions differ across distributions. Trying to automate this could pull incompatible dependencies. Users who want native hardware blur should install the build dependencies for their distribution (listed above) and compile locally with CMake.
+The optional C++ blur and application menu modules cannot be distributed via an automated universal installer or pre-compiled binary because development packages and library versions differ across distributions. Trying to automate this could pull incompatible dependencies. Users who want native blur or application menus should install the build dependencies for their distribution (listed above) and compile locally with CMake.
 
 ---
 

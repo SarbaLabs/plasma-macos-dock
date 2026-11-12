@@ -21,6 +21,25 @@ find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Core Quick Gui Qml)
 find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS WindowSystem Config CoreAddons)
 find_package(Plasma REQUIRED)
 
+option(BUILD_NATIVE_MENUS "Build optional native application menu support" ON)
+if(BUILD_NATIVE_MENUS)
+    find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Widgets)
+    find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS KIO Service I18n Notifications)
+    find_package(PlasmaActivitiesStats REQUIRED)
+    add_library(dockmenubackend STATIC src/applicationmenubackend.cpp src/applicationmenubackend.h)
+    set_target_properties(dockmenubackend PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_include_directories(dockmenubackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(dockmenubackend PUBLIC
+        Qt6::Widgets KF6::KIOFileWidgets KF6::KIOGui KF6::Service
+        KF6::I18n KF6::Notifications Plasma::ActivitiesStats)
+    add_library(dockmenuplugin SHARED src/menuplugin.cpp src/menuplugin.h)
+    target_link_libraries(dockmenuplugin PRIVATE dockmenubackend Qt6::Qml)
+    install(TARGETS dockmenuplugin
+        DESTINATION ${KDE_INSTALL_QMLDIR}/com/github/mattanis/macosdock/menus)
+    install(FILES src/menus/qmldir
+        DESTINATION ${KDE_INSTALL_QMLDIR}/com/github/mattanis/macosdock/menus)
+endif()
+
 include(CTest)
 if(BUILD_TESTING)
     find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Test)
@@ -59,7 +78,7 @@ install(FILES src/qmldir
 )
 
 # Option to only build/install the C++ plugin (useful when the plasmoid is installed from KDE Store)
-option(BUILD_PLUGIN_ONLY "Build and install only the C++ blur plugin without installing plasmoid files" OFF)
+option(BUILD_PLUGIN_ONLY "Build and install only the native plugins without installing plasmoid files" OFF)
 
 if(NOT BUILD_PLUGIN_ONLY)
     # Install plasmoid applet package directly
