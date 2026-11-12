@@ -6,6 +6,11 @@
 
 A native widget for KDE Plasma 6 that brings a smooth, responsive macOS dock-like experience to your Linux desktop. Built directly on top of KDE's official Icons-Only Task Manager, it transforms the taskbar into a floating, magnified capsule while keeping all native Plasma system integrations, Wayland window management, and application workflows fully intact.
 
+This is the maintained [SarbaLabs fork](https://github.com/SarbaLabs/plasma-macos-dock).
+Use this repository for installation, updates and [issue reports](https://github.com/SarbaLabs/plasma-macos-dock/issues).
+It builds on [Matt-Anis's original project](https://github.com/Matt-Anis/plasma-macos-dock);
+original copyright notices, package identifiers and license are preserved. The upstream KDE Store entry does not distribute this fork's changes.
+
 ## Table of Contents
 
 - [Installation](#installation)
@@ -19,7 +24,8 @@ A native widget for KDE Plasma 6 that brings a smooth, responsive macOS dock-lik
   - [Spring and Smooth Animation Physics](#spring-and-smooth-animation-physics)
   - [Hover Lift Elevation](#hover-lift-elevation)
   - [Capsule Styling, Native Blur, and Liquid Glass](#capsule-styling-native-blur-and-liquid-glass)
-  - [External Running Indicator Dots](#external-running-indicator-dots)
+  - [Running Indicators](#running-indicators)
+  - [Hover Glow and Corner Radius](#hover-glow-and-corner-radius)
   - [Pinned and Running Tasks Divider](#pinned-and-running-tasks-divider)
   - [Native Task Manager Shortcuts (Meta+1..9)](#native-task-manager-shortcuts-meta19)
   - [All-Edge Screen Placement Support](#all-edge-screen-placement-support)
@@ -40,42 +46,12 @@ A native widget for KDE Plasma 6 that brings a smooth, responsive macOS dock-lik
 
 ## Installation
 
-### Option 1: Install from KDE Store or Direct Clone (Recommended — No Compilation)
+### Recommended: Install this fork from source
 
-The easiest way to get macOS Dock is directly through Plasma's built-in widget installer:
-
-1. Right-click your desktop or an existing panel and choose **Add Widgets…**
-2. Click **Get New Widgets…** $\rightarrow$ **Download New Plasma Widgets…** (or visit the [KDE Store / OpenDesktop Page](https://www.opendesktop.org/p/2376880/))
-3. Search for **macOS Dock** and click **Install**.
-
-#### Alternative: Manual Pure-QML Install (Git Clone or .plasmoid)
-
-You can clone the repository directly into your local plasmoids folder with zero build dependencies:
-
-```bash
-mkdir -p ~/git
-cd ~/git
-git clone https://github.com/SarbaLabs/plasma-macos-dock.git ~/.local/share/plasma/plasmoids/com.github.mattanis.macosdock
-systemctl --user restart plasma-plasmashell
-```
-
-Or download `com.github.mattanis.macosdock.plasmoid` from the [Releases](https://github.com/Matt-Anis/plasma-macos-dock/releases) page and install it using:
-
-```bash
-kpackagetool6 --type Plasma/Applet --install com.github.mattanis.macosdock.plasmoid
-```
-
-> [!TIP]
-> **Recommended Panel Sizing**: We recommend setting your Plasma panel thickness (height for bottom/top panels, width for left/right panels) to **100px** to provide ideal headroom for hover magnification and lift elevation (or check **Auto-adjust panel thickness** in dock settings).
-
-> [!NOTE]
-> Installing from the KDE Store, downloading the `.plasmoid` bundle, or cloning directly into your plasmoids folder runs the widget in **pure QML mode**. Core features (continuous magnification wave, animations, padding, edge elevation, translucent glass styles, and native shortcuts) work out of the box with zero compilation or build dependencies. The separate `without-blur` branch has been retired as this main codebase now natively supports pure QML mode with optional hardware blur and native application menus. Desktop actions, KDE Places and recent documents require the optional native menu module. Pin/Unpin, Test Bounce Animation and existing window actions remain available without it.
-
----
-
-### Option 2: Enable Native Blur and Application Menus (Optional — Build from Source)
-
-Compile the optional C++ modules for hardware-accelerated background blur and application context menus (desktop actions, KDE Places and recent documents). See [the menu integration guide](docs/application-context-menus.md) for architecture and validation.
+Use the existing `./install.sh` workflow to install the complete plasmoid and its
+optional native blur and application-menu modules. Desktop actions, KDE Places
+and recent documents require the native menu module. Indicators, hover glow,
+magnification and capsule styling work in pure QML as well.
 
 #### 1. Install Build Dependencies for Your Distribution
 
@@ -112,11 +88,10 @@ cd plasma-macos-dock
 
 Use the full installation for this feature, including when upgrading a KDE Store copy. The script also updates a user-installed applet that would otherwise override the system copy. `--plugin-only` remains available for native-only updates when the matching QML is already installed.
 
-*(Alternatively, run standard CMake commands: `cmake -B build -S . && cmake --build build && sudo cmake --install build`)*
-
 #### 3. Restart Plasma Shell
 
-Restart Plasma to load the new QML blur plugin:
+Accept the installer's restart prompt to load the updated QML and native modules.
+If you defer it, restart Plasma later:
 
 ```bash
 systemctl --user restart plasma-plasmashell
@@ -124,15 +99,55 @@ systemctl --user restart plasma-plasmashell
 
 ---
 
-### Packaging for Release (Developers)
+### Update an existing installation
 
-To create a clean `.plasmoid` bundle ready to upload to [KDE Store / OpenDesktop](https://www.opendesktop.org/p/2376880/) or attach to GitHub Releases:
+After the changes you want have been merged into this fork's `master`:
+
+```bash
+cd ~/git/plasma-macos-dock
+git fetch origin
+git switch master
+git pull --ff-only
+./install.sh
+```
+
+Check `git remote -v` if this checkout originally came from upstream. If needed,
+point `origin` to this fork before fetching:
+
+```bash
+git remote set-url origin https://github.com/SarbaLabs/plasma-macos-dock.git
+```
+
+For an unmerged PR, use its development branch instead of `master`. Run the full
+installer for QML/configuration changes; `--plugin-only` is not sufficient.
+Do not remove/re-add the widget or create a competing user/system package copy.
+
+### Alternative: Pure-QML installation
+
+For a fresh installation without compiling native components, clone this fork
+under `~/git`, enter its directory and create a local bundle (`zip` is required):
 
 ```bash
 ./package.sh
+kpackagetool6 --type Plasma/Applet --install com.github.mattanis.macosdock.plasmoid
+systemctl --user restart plasma-plasmashell.service
 ```
 
-This generates `com.github.mattanis.macosdock.plasmoid` in the project root.
+This command is for a fresh package installation. For an existing installation,
+the full installer above handles matching QML and user/system package precedence,
+including development updates with unchanged version numbers. Without native
+modules, hardware blur and application-specific menus are unavailable; the
+existing Pin/Unpin, Test Bounce Animation and window actions remain available.
+
+If a prebuilt `.plasmoid` is available, obtain it only from this fork's
+[Releases](https://github.com/SarbaLabs/plasma-macos-dock/releases), not upstream.
+No release is created automatically by the current development PR.
+
+### Packaging (developers)
+
+`./package.sh` creates `com.github.mattanis.macosdock.plasmoid` from the local
+checkout. Building a bundle does not publish it. This fork's source and releases
+are hosted at [SarbaLabs/plasma-macos-dock](https://github.com/SarbaLabs/plasma-macos-dock).
 
 ---
 
@@ -235,15 +250,38 @@ When **System Blur** or **Liquid Glass** is active, you can fine-tune the optica
 
   ![Capsule Styling](assets/demo/styling.gif)
 
-### External Running Indicator Dots
+### Running Indicators
 
-Running applications display a subtle indicator dot placed in the capsule padding beneath the icon rather than drawn over the icon graphic itself.
+Open **Indicators** in the dock settings to select:
 
-- **How to use**: In dock settings under **Appearance > Previews & Indicators**, check **Show indicator for running applications**. The indicator glows bright white for the active window and dims to soft translucent white for background or minimized windows.
+- **macOS** (default): the original small running dots.
+- **Plasma**: native theme task states and group symbols.
+- **Custom**: dots, lines or dashes, state-dependent dimensions, colors and opacity.
+  An optional separate unfocused color distinguishes inactive applications and
+  inactive members of window groups. Window segments are capped; there is no
+  Custom overflow +. The genuine Plasma group symbol remains independently configurable.
+
+Native group symbols and Plasma task decorations have independent overrides.
+See [indicator configuration](docs/indicators.md) for defaults and theme limitations.
+
+### Hover Glow and Corner Radius
+
+Under **Appearance → Capsule & Style**:
+
+- Enable **Enable hover glow** for an application-colored light following the
+  pointer in X and Y, only while its tip is inside the rounded capsule. Adjust
+  intensity, radius and opacity. Glow is off by default and hidden in fully
+  Transparent mode; it does not extend into the panel's transparent area.
+- Enable **Use a custom corner radius**, then set **Corner radius (px)**.
+  Zero gives square corners; larger values are clamped to the capsule size.
+  Automatic radius remains the default. Border, glass, glow and native blur
+  share the same effective corner geometry.
+
+See [capsule architecture and validation](docs/capsule-refinements.md).
 
 ### Pinned and Running Tasks Divider
 
-The dock automatically generates a subtle vertical or horizontal separator line between your pinned application launchers and unpinned running windows.
+The dock automatically generates a subtle vertical or horizontal separator line between your pinned application launchers and unpinned running windows. It follows the group boundary when the order is reversed and disappears when only one group exists.
 
 - **How to use**: Pin favorite applications to your dock. When you open an unpinned app, a clean translucent divider appears automatically between the launcher section and the open window section.
 

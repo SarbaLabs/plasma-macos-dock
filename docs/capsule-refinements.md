@@ -1,5 +1,11 @@
 # Capsule refinements and separator boundary
 
+> **Status (2026-11-12):** See [development status](development-status.md) for
+> maintainer acceptance and merge readiness. Earlier pending checks below record
+> the investigation history; they do not override the latest acceptance decision.
+> For current installation/update instructions, use [README](../README.md#installation).
+
+
 ## Separator
 
 The old separator was attached to `firstUnpinnedIndex`, with spacing always at
@@ -100,7 +106,7 @@ bridge, installer workflow, indicators/capsule). QML parsing and git whitespace
 checks passed. Full KIO launch tests require D-Bus, unavailable in this workspace;
 they run with the other suites and staged installation in PR #3's CI checks.
 
-Before merging, validate on CachyOS Wayland:
+Desktop regression matrix for future changes:
 
 - Pin/unpin and open/close windows with both group orders, all four panel edges,
   reverse mode/RTL, grouped tasks and magnification near the separator.

@@ -1,5 +1,11 @@
 # Advanced dock indicators
 
+> **Status (2026-11-12):** See [development status](development-status.md) for
+> maintainer acceptance and merge readiness. Earlier pending checks below record
+> the investigation history; they do not override the latest acceptance decision.
+> For current installation/update instructions, use [README](../README.md#installation).
+
+
 ## Architecture and compatibility
 
 The default `indicatorMode=0` retains the original `runningDot` in `Task.qml`,
@@ -151,7 +157,7 @@ Use its Plasma restart prompt; if deferred, restart later with
 change is required. Preserve the installer's existing handling of user/system
 plasmoid copies; do not create a second copy manually.
 
-Final acceptance requires the maintainer's actual Plasma Wayland desktop:
+Retain this matrix for future desktop regression testing:
 
 - Existing and fresh settings: original macOS dots, no new frame/group by default.
 - Switch all modes repeatedly; saved Custom values persist after Shell restart.
@@ -170,8 +176,8 @@ Final acceptance requires the maintainer's actual Plasma Wayland desktop:
 - Pure-QML install without either optional plugin: indicators and settings work.
 
 Headless component checks do not establish visual correctness, live Wayland
-focus behavior, screen placement or compositor performance. These checks remain
-pending until tested on CachyOS before merge.
+focus behavior, screen placement or compositor performance. The maintainer accepted PR #3 for manual merge on 2026-11-12. This does not
+assert that every edge/theme/scale combination in the matrix was individually tested.
 
 ## Refinements after desktop acceptance (2026-11-12)
 

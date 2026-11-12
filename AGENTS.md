@@ -12,7 +12,7 @@
   visibility notification. Restore after Plasma::Theme::themeChanged through
   the existing coalesced queue, not directly on an earlier palette event.
 - See docs/blur-restoration.md for evidence, lifecycle decisions, validation
-  limits, deployment instructions and the pending KWin acceptance checklist.
+  limits, deployment instructions and the historical KWin acceptance checklist.
 - Keep unrelated panel geometry, dodge policy and magnification changes separate.
 - Application context menus use a separate optional native module. See
   docs/application-context-menus.md. Preserve ContextMenu.qml's Pin/Unpin and
@@ -28,3 +28,8 @@
 - Glow pointer observation belongs on the tasks' common ancestor. A high-z sibling
   can suppress continuous task hover even with blocking:false. Keep regression
   coverage for hover movement as well as clicks, and gate light on rounded entry.
+
+- See docs/development-status.md for the accepted baseline. PR #3 is approved by
+  the maintainer for manual merge; never perform that merge or publish a release
+  without a new explicit instruction. Installation/update/support links target
+  SarbaLabs; keep the upstream link only for attribution and source references.
