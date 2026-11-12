@@ -13,8 +13,22 @@ HoverHandler {
     required property var taskSource
     property bool vertical: false
     property Item hoveredTask: null
+    property Item pointerSource: null
+    property point observedPosition: Qt.point(0, 0)
     signal positionUpdated(Item task, point position)
 
+    function trackFromItem(item: Item, position: point): void {
+        if (!enabled) return;
+        pointerSource = item;
+        observedPosition = item.mapToItem(observationItem, position.x, position.y);
+        updatePosition(observedPosition);
+    }
+    function releaseItem(item: Item): void {
+        if (pointerSource !== item) return;
+        pointerSource = null;
+        // A neighbouring task may receive the same event after this leave.
+        Qt.callLater(refresh);
+    }
     function updatePosition(position: point): void {
         const mapped = observationItem.mapToItem(capsule, position.x, position.y);
         if (!Geometry.containsPoint(capsule.width, capsule.height, cornerRadius, mapped.x, mapped.y)) {
@@ -36,8 +50,11 @@ HoverHandler {
         }
     }
     function refresh(): void {
-        if (enabled && hovered) updatePosition(point.position);
+        if (enabled && pointerSource) updatePosition(observedPosition);
+        else if (enabled && hovered) updatePosition(point.position);
+        else hoveredTask = null;
     }
+    onPointerSourceChanged: Qt.callLater(refresh)
     readonly property Connections modelChanges: Connections {
         target: root.enabled ? root.taskSource : null
         ignoreUnknownSignals: true
@@ -57,12 +74,12 @@ HoverHandler {
         function onYChanged() { Qt.callLater(root.refresh); }
     }
     onCornerRadiusChanged: Qt.callLater(refresh)
-    onPointChanged: if (enabled && hovered) updatePosition(point.position)
-    onHoveredChanged: {
-        if (enabled && hovered) updatePosition(point.position);
-        else hoveredTask = null;
-    }
+    onPointChanged: if (enabled && hovered && !pointerSource) updatePosition(point.position)
+    onHoveredChanged: Qt.callLater(refresh)
     onEnabledChanged: {
-        if (!enabled) hoveredTask = null;
+        if (!enabled) {
+            pointerSource = null;
+            hoveredTask = null;
+        } else Qt.callLater(refresh);
     }
 }

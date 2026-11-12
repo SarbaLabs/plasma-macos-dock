@@ -29,7 +29,11 @@
   can suppress continuous task hover even with blocking:false. Keep regression
   coverage for hover movement as well as clicks, and gate light on rounded entry.
 
-- See docs/development-status.md for the accepted baseline. PR #3 is approved by
-  the maintainer for manual merge; never perform that merge or publish a release
+- Native ToolTipArea can consume ancestor hover. Forward the existing task
+  handler to the glow tracker and test with real Plasma tooltips, not only
+  MouseArea fixtures. Refresh shared tooltip bindings on aboutToShow; shared
+  visibility signals do not identify the current task owner.
+- See docs/development-status.md for the accepted baseline. PR #3 is merged;
+  subsequent fixes require their own review. Never merge or publish a release
   without a new explicit instruction. Installation/update/support links target
   SarbaLabs; keep the upstream link only for attribution and source references.
