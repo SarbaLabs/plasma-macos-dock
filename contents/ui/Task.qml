@@ -770,7 +770,7 @@ PlasmaCore.ToolTipArea {
             id: icon
 
             anchors.fill: parent
-
+            roundToIconSize: false
             active: task.highlighted
             enabled: true
 
