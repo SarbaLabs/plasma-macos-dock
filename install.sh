@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # install.sh - Build and install helper for macOS Dock Plasma 6 widget
-# Compiles the C++ KWin blur plugin and/or installs the plasmoid.
+# Compiles the native blur and application menu plugins and/or installs the plasmoid.
 #
 
 set -e
@@ -33,8 +33,8 @@ usage() {
     echo -e "${BOLD}Usage:${RESET} $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --plugin-only    Build & install only the C++ blur module"
-    echo "                   (Recommended if you already installed the widget from KDE Store)"
+    echo "  --plugin-only    Build & install only the native modules"
+    echo "                   (Use only when the matching QML is already installed)"
     echo "  --uninstall      Remove installed files from the system"
     echo "  --help, -h       Show this help message"
     echo ""
@@ -107,23 +107,29 @@ for tool in cmake g++ make; do
     fi
 done
 
+# A user-installed applet takes precedence over /usr/share. Update that copy
+# too when installing the complete fork, rather than leaving stale QML active.
+USER_APPLET="${XDG_DATA_HOME:-${HOME}/.local/share}/plasma/plasmoids/com.github.mattanis.macosdock"
+
 CMAKE_ARGS=(
     "-DCMAKE_BUILD_TYPE=Release"
     "-DCMAKE_INSTALL_PREFIX=/usr"
+    "-DBUILD_PLUGIN_ONLY=OFF"
+    "-DBUILD_NATIVE_MENUS=ON"
 )
 
 if [ "$PLUGIN_ONLY" -eq 1 ]; then
-    info "Building C++ blur plugin only (skipping plasmoid applet)..."
+    info "Building native plugins only (skipping plasmoid applet)..."
     CMAKE_ARGS+=("-DBUILD_PLUGIN_ONLY=ON")
 else
-    info "Building C++ blur plugin and plasmoid applet..."
+    info "Building native plugins and plasmoid applet..."
 fi
 
 info "Configuring with CMake..."
 if ! cmake -B build -S . "${CMAKE_ARGS[@]}"; then
     echo ""
     error "CMake configuration failed."
-    echo "You may be missing required development headers (ECM, Qt6, KF6 WindowSystem, libplasma)."
+    echo "You may be missing required development headers (ECM, Qt6, KF6 WindowSystem/KIO/Service/I18n/Notifications, libplasma, plasma-activities-stats)."
     echo "Check README.md -> 'Build Dependencies' for your distribution's package command."
     exit 1
 fi
@@ -133,6 +139,15 @@ cmake --build build -j"$(nproc 2>/dev/null || echo 2)"
 
 info "Installing to system (requires sudo)..."
 sudo cmake --install build
+
+if [ "$PLUGIN_ONLY" -eq 0 ] && [ -d "$USER_APPLET" ]; then
+    info "Updating the user-installed applet that overrides the system copy..."
+    # kpackagetool6 --upgrade rejects equal versions, including development
+    # updates. Mirror the source files just as CMake does for the system copy.
+    # Applet settings live in Plasma's configuration, outside this directory.
+    cp -R contents "$USER_APPLET/"
+    cp metadata.json "$USER_APPLET/"
+fi
 
 if [ "$PLUGIN_ONLY" -eq 0 ] && [ -f "assets/logo.png" ]; then
     USER_ICON_DIR="${HOME}/.local/share/icons/hicolor/256x256/apps"
