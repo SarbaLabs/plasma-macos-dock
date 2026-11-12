@@ -89,7 +89,7 @@ Compile the optional C++ modules for hardware-accelerated background blur and ap
   ```
 * **Ubuntu / Debian / Pop!_OS**:
   ```bash
-  sudo apt install cmake build-essential python3 extra-cmake-modules qt6-base-dev qt6-declarative-dev libkf6windowsystem-dev libplasma-dev libkf6kio-dev libkf6service-dev libkf6i18n-dev libkf6notifications-dev libplasmaactivitiesstats-dev
+  sudo apt install cmake build-essential python3 extra-cmake-modules qt6-base-dev qt6-declarative-dev qml6-module-qtquick-shapes libkf6windowsystem-dev libplasma-dev libkf6kio-dev libkf6service-dev libkf6i18n-dev libkf6notifications-dev libplasmaactivitiesstats-dev
   ```
 * **openSUSE**:
   ```bash

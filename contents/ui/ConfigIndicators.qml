@@ -35,7 +35,8 @@ KCMUtils.SimpleKCM {
     property alias cfg_indicatorGroupThickness: indicatorGroupThicknessControl.value
     property alias cfg_indicatorGroupLength: indicatorGroupLengthControl.value
     property alias cfg_indicatorMaxSegments: indicatorMaxSegmentsControl.value
-    property alias cfg_indicatorOverflow: indicatorOverflowControl.checked
+    property alias cfg_indicatorUnfocusedColorEnabled: unfocusedColorEnabled.checked
+    property color cfg_indicatorUnfocusedColor: "#3daee9"
     property alias cfg_indicatorHighlightActive: indicatorHighlightActiveControl.checked
     property alias cfg_indicatorDimInactive: indicatorDimInactiveControl.checked
     property alias cfg_indicatorInactiveOpacity: indicatorInactiveOpacityControl.value
@@ -68,7 +69,8 @@ KCMUtils.SimpleKCM {
         indicatorGroupThickness: cfg_indicatorGroupThickness,
         indicatorGroupLength: cfg_indicatorGroupLength,
         indicatorMaxSegments: cfg_indicatorMaxSegments,
-        indicatorOverflow: cfg_indicatorOverflow,
+        indicatorUnfocusedColorEnabled: cfg_indicatorUnfocusedColorEnabled,
+        indicatorUnfocusedColor: cfg_indicatorUnfocusedColor,
         indicatorHighlightActive: cfg_indicatorHighlightActive,
         indicatorDimInactive: cfg_indicatorDimInactive,
         indicatorInactiveOpacity: cfg_indicatorInactiveOpacity,
@@ -259,12 +261,6 @@ KCMUtils.SimpleKCM {
             editable: true
         }
         QQC2.CheckBox {
-            id: indicatorOverflowControl
-            visible: root.customEnabled
-            text: i18n("Show + for additional windows")
-            checked: true
-        }
-        QQC2.CheckBox {
             id: indicatorHighlightActiveControl
             visible: root.customEnabled
             text: i18n("Highlight the active window in a group")
@@ -302,6 +298,22 @@ KCMUtils.SimpleKCM {
             Kirigami.FormData.label: i18n("Custom color:")
             text: root.cfg_indicatorCustomColor.toString()
             onClicked: colorDialog.open()
+        }
+        QQC2.CheckBox {
+            id: unfocusedColorEnabled
+            visible: root.customEnabled
+            text: i18n("Use a separate unfocused indicator color")
+        }
+        QQC2.Button {
+            visible: root.customEnabled && root.cfg_indicatorUnfocusedColorEnabled
+            Kirigami.FormData.label: i18n("Unfocused color:")
+            text: root.cfg_indicatorUnfocusedColor.toString()
+            onClicked: unfocusedDialog.open()
+        }
+        QtDialogs.ColorDialog {
+            id: unfocusedDialog
+            selectedColor: root.cfg_indicatorUnfocusedColor
+            onAccepted: root.cfg_indicatorUnfocusedColor = selectedColor
         }
         QQC2.Label {
             visible: root.customEnabled

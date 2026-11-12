@@ -29,8 +29,9 @@ native theme appearance. This is a theme limitation, not a replacement theme.
 The previously disabled group SVG was also absent from the dock's task creation
 path. It is now loaded on demand for actual groups with more than one child,
 using the theme's `group-expander-bottom/top/left/right` elements. It has no input
-handler. This symbol is independent of Custom overflow: **the group symbol means
-grouped windows; + means more windows than the displayed segment limit**.
+handler. **The native group symbol is the only grouped-window marker.** The
+experimental Custom + has been removed following desktop testing; an old
+`indicatorOverflow` value is ignored, without rewriting unrelated saved settings.
 
 ## Custom settings
 
@@ -49,7 +50,8 @@ No native module or new runtime dependency is required.
 | Hover dimensions | Resize disabled; separate 6 px / 24 px, or reuse active sizes |
 | Group dimensions | Separate sizes disabled; 4 px / 8 px when enabled |
 | Roundness / spacing / alignment | 100%, 2 px, centered thickness |
-| Maximum segments / overflow | 4 (range 1–8); + enabled |
+| Maximum segments | 4 (range 1–8); no Custom + |
+| Separate unfocused color | Disabled; saved color #3daee9 |
 | Active group emphasis / dim inactive | Both enabled |
 | Inactive opacity / minimized desaturation | 55% / disabled |
 | Color | Plasma accent; optionally icon dominant color or custom #3daee9 |
@@ -69,13 +71,13 @@ dot, and never contribute to layout or pointer handling.
 
 ## Model and performance
 
-The renderer creates at most eight window segments plus one overflow marker.
+The renderer creates at most eight window segments.
 A numeric Repeater model preserves delegate identity through hover/zoom. The
 model adapter coalesces model signals with `Qt.callLater`, queries at most eight
 minimized roles, and identifies the active child through the active model index
-and its parent. If the active child is beyond the limit, + carries the active
-state (or the final segment when + is disabled). Overflow summarizes hidden
-windows; it is not individually desaturated based on unqueried hidden children.
+and its parent. If the active child is beyond the limit, the final segment carries
+the active state. It summarizes hidden windows; it is not individually
+desaturated based on unqueried hidden children.
 
 There are no timers or per-frame model scans. Dominant colors are lazily extracted
 with `Kirigami.ImageColors` from `model.decoration`, not a grab of the animated
@@ -104,7 +106,7 @@ assets are imported. The repository's existing license remains unchanged.
 ## Automated validation
 
 Qt Quick tests cover mode defaults, independent native overrides, running/group
-counts, overflow and hidden active children, dimension precedence, size bounds,
+counts, segment limits and hidden active children, dimension precedence, size bounds,
 edge selection, colors/desaturation, bounded model updates and stable delegates.
 They instantiate the real configuration page and native components, and check
 all four group symbols against the installed Breeze task SVG. The model adapter
@@ -161,7 +163,7 @@ Final acceptance requires the maintainer's actual Plasma Wayland desktop:
   accent/theme changes, icon color fallback and custom color.
 - Bottom/top/left/right, reverse layout, floating/non-floating, multiple screens,
   HiDPI, small/large icons, 40 px at 1.5x zoom and larger zoom; no clipping,
-  overlap, jitter or panel expansion. Test edge overrides and + with group symbol.
+  overlap, jitter or panel expansion. Test edge overrides with the native group symbol.
 - Magnification on/off, bounce and Test Bounce Animation, badges/audio/progress.
 - Native context actions, Places (including spaces), recents, Pin/Unpin,
   window actions; System Blur/Liquid Glass, hide/show and wallpaper accent changes.
@@ -170,3 +172,19 @@ Final acceptance requires the maintainer's actual Plasma Wayland desktop:
 Headless component checks do not establish visual correctness, live Wayland
 focus behavior, screen placement or compositor performance. These checks remain
 pending until tested on CachyOS before merge.
+
+## Refinements after desktop acceptance (2026-11-12)
+
+The maintainer confirmed the three modes work on CachyOS. The Custom + did not
+work reliably there and was explicitly retired, rather than adding another
+window-group marker. Its schema entry, UI, delegate branches and obsolete tests
+were removed; the maximum segment limit and hidden-active-child handling remain.
+
+Custom indicators can now select a separate unfocused color. The pipeline is:
+choose active source or optional unfocused color, optionally desaturate minimized
+windows, then apply inactive opacity. This uses the existing active child index,
+so inactive members of the focused group also receive the unfocused color. The
+option defaults off, preserving the previous automatic colors and opacity.
+
+See [capsule-refinements.md](capsule-refinements.md) for the separator, optional
+hover glow, radius synchronization, additional tests and manual checks.

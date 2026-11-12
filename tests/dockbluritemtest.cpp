@@ -66,6 +66,25 @@ private Q_SLOTS:
     {
         QVERIFY(!wrongThread);
     }
+    void cornerRadiusChangesWithoutGeometryChange()
+    {
+        QQuickWindow window;
+        window.resize(200, 100);
+        DockBlurItem item(window.contentItem());
+        item.setSize(QSizeF(100, 40));
+        window.show();
+        QTRY_VERIFY(window.isExposed());
+        for (qreal radius : {0., 5., 10., 20., 0.}) {
+            item.setCornerRadius(radius);
+            item.updateBlurRegion();
+            QPainterPath path;
+            path.addRoundedRect(QRectF(0, 0, 100, 40), radius, radius);
+            const QRegion expected = radius == 0 ? QRegion(0, 0, 100, 40)
+                : QRegion(path.toFillPolygon().toPolygon());
+            QTRY_COMPARE(effects[&window].region, expected);
+            QCOMPARE(effects[&window].contrastRegion, expected);
+        }
+    }
     void restoreWithoutPointerAndKeepCache()
     {
         QQuickWindow window;

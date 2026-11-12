@@ -18,6 +18,7 @@ import org.kde.kirigami as Kirigami
 import "code/LayoutMetrics.js" as LayoutMetrics
 import "code/TaskTools.js" as TaskTools
 import "code/IndicatorLogic.js" as IndicatorLogic
+import "code/CapsuleGeometry.js" as CapsuleGeometry
 import org.kde.plasma.plasmoid
 import org.kde.taskmanager as TaskManager
 
@@ -51,8 +52,37 @@ PlasmaCore.ToolTipArea {
         : 0.0
 
     readonly property bool isPinned: Boolean(model.IsLauncher || (model.LauncherUrlWithoutIcon && tasksRoot && tasksRoot.hasLauncher(model.LauncherUrlWithoutIcon)))
-    readonly property bool isDividerTask: tasksRoot && tasksRoot.hasDivider && tasksRoot.firstUnpinnedIndex === index
+    readonly property bool isDividerTask: tasksRoot && tasksRoot.hasDivider && tasksRoot.dividerIndex === index
     readonly property int dividerOffset: isDividerTask ? tasksRoot.dividerSpan : 0
+
+    readonly property bool dividerAtEnd: CapsuleGeometry.gapAtEnd(tasksRoot.vertical,
+        Plasmoid.configuration.reverseMode, Application.layoutDirection === Qt.RightToLeft)
+    readonly property real dividerCenterOffset: (dividerAtEnd ? -1 : 1) * dividerOffset / 2
+    property bool glowColorRequested: false
+    readonly property bool glowWanted: !inPopup && tasksRoot.hoverGlowAvailable && isTaskHovered
+    onGlowWantedChanged: {
+        if (glowWanted) {
+            glowColorRequested = true;
+            reportGlow(taskHoverHandler.point.position);
+        }
+    }
+    readonly property color dominantIconColor: iconColorsLoader.item && iconColorsLoader.item.colors.dominant.a > 0
+        ? iconColorsLoader.item.colors.dominant : Kirigami.Theme.highlightColor
+    Loader {
+        id: iconColorsLoader
+        active: !task.inPopup && ((tasksRoot.hoverGlowAvailable && task.glowColorRequested)
+            || (task.indicatorMode === 2 && task.isRunning && Plasmoid.configuration.customIndicatorsEnabled
+                && Plasmoid.configuration.indicatorColorSource === 1))
+        sourceComponent: Item {
+            readonly property Kirigami.ImageColors colors: Kirigami.ImageColors { source: task.model.decoration }
+        }
+    }
+    function reportGlow(pos: point): void {
+        if (glowWanted) {
+            const local = taskHoverHandler.parent.mapToItem(task, pos.x, pos.y);
+            tasksRoot.setGlowPosition(task, local);
+        }
+    }
 
     z: inPopup ? 0 : Math.round(effectiveZoom * 100)
 
@@ -311,6 +341,7 @@ PlasmaCore.ToolTipArea {
     readonly property int halfSpacing: Math.ceil((tasksRoot ? tasksRoot.iconSpacing : 4) / 2)
 
     function reportContinuousHover(pos: point): void {
+        reportGlow(pos);
         if (!tasksRoot || !tasksRoot.zoomEnabled) {
             return;
         }
@@ -319,7 +350,7 @@ PlasmaCore.ToolTipArea {
         const divOffset = task.dividerOffset || 0;
         const iconSpan = Math.max(1, totalSpan - divOffset);
         const rawCoord = (isVert ? pos.y : pos.x) - halfSpacing;
-        const iconCoord = rawCoord - divOffset;
+        const iconCoord = rawCoord - (dividerAtEnd ? 0 : divOffset);
         let ratio = (iconCoord - (iconSpan / 2)) / iconSpan;
 
         const mirrored = tasksRoot.shouldBeMirrored(Plasmoid.configuration.reverseMode, Application.layoutDirection, isVert);
@@ -384,6 +415,7 @@ PlasmaCore.ToolTipArea {
     }
 
     onIndexChanged: {
+        if (tasksRoot) tasksRoot.dividerRevision++;
         hideToolTip();
 
         if (!inPopup && !tasksRoot.vertical
@@ -590,7 +622,7 @@ PlasmaCore.ToolTipArea {
             id: taskHoverHandler
             enabled: !task.inPopup
             onPointChanged: {
-                if (hovered && tasksRoot && tasksRoot.zoomEnabled) {
+                if (hovered && tasksRoot && (tasksRoot.zoomEnabled || tasksRoot.hoverGlowAvailable)) {
                     task.reportContinuousHover(point.position);
                 }
             }
@@ -807,8 +839,8 @@ PlasmaCore.ToolTipArea {
                 PropertyChanges {
                     iconBox.anchors.leftMargin: 0
                     iconBox.anchors.topMargin: 0
-                    iconBox.anchors.horizontalCenterOffset: (!tasksRoot.vertical && isDividerTask) ? Math.round(dividerOffset / 2) : 0
-                    iconBox.anchors.verticalCenterOffset: (tasksRoot.vertical && isDividerTask) ? Math.round(dividerOffset / 2) : 0
+                    iconBox.anchors.horizontalCenterOffset: (!tasksRoot.vertical && isDividerTask) ? task.dividerCenterOffset : 0
+                    iconBox.anchors.verticalCenterOffset: (tasksRoot.vertical && isDividerTask) ? task.dividerCenterOffset : 0
                     iconBox.width: Math.round(tasksRoot.iconSize * task.currentScale)
                     iconBox.height: Math.round(tasksRoot.iconSize * task.currentScale)
                 }
@@ -930,9 +962,9 @@ PlasmaCore.ToolTipArea {
 
         anchors {
             horizontalCenter: tasksRoot.vertical ? undefined : parent.horizontalCenter
-            horizontalCenterOffset: (!tasksRoot.vertical && isDividerTask) ? Math.round(dividerOffset / 2) : 0
+            horizontalCenterOffset: (!tasksRoot.vertical && isDividerTask) ? task.dividerCenterOffset : 0
             verticalCenter: tasksRoot.vertical ? parent.verticalCenter : undefined
-            verticalCenterOffset: (tasksRoot.vertical && isDividerTask) ? Math.round(dividerOffset / 2) : 0
+            verticalCenterOffset: (tasksRoot.vertical && isDividerTask) ? task.dividerCenterOffset : 0
 
             // Bottom panel: placed below the icon in the bottom padding
             top: (!tasksRoot.vertical && tasksRoot.effectiveLocation !== PlasmaCore.Types.TopEdge) ? parent.bottom : undefined
@@ -975,10 +1007,10 @@ PlasmaCore.ToolTipArea {
 
     Loader {
         id: customIndicatorLoader
-        x: tasksRoot.vertical ? 0 : task.dividerOffset
-        y: tasksRoot.vertical ? task.dividerOffset : 0
-        width: task.width - x
-        height: task.height - y
+        x: tasksRoot.vertical || task.dividerAtEnd ? 0 : task.dividerOffset
+        y: tasksRoot.vertical && !task.dividerAtEnd ? task.dividerOffset : 0
+        width: task.width - (tasksRoot.vertical ? 0 : task.dividerOffset)
+        height: task.height - (tasksRoot.vertical ? task.dividerOffset : 0)
         active: !task.inPopup && task.indicatorMode === 2 && task.isRunning
             && Plasmoid.configuration.customIndicatorsEnabled !== false
         sourceComponent: CustomIndicators {
@@ -992,7 +1024,7 @@ PlasmaCore.ToolTipArea {
             minimizedWindows: indicatorState.minimizedWindows
             hovered: task.highlighted
             accentColor: Kirigami.Theme.highlightColor
-            dominantColor: colorsLoader.item ? colorsLoader.item.colors.dominant : "transparent"
+            dominantColor: task.dominantIconColor
 
             readonly property IndicatorTaskState indicatorState: IndicatorTaskState {
                 tasksModel: task.tasksModel
@@ -1005,14 +1037,7 @@ PlasmaCore.ToolTipArea {
                 windowCount: customIndicators.windowCount
                 limit: IndicatorLogic.number(Plasmoid.configuration, "indicatorMaxSegments", 4, 1, 8)
             }
-            Loader {
-                id: colorsLoader
-                active: Plasmoid.configuration.indicatorColorSource === 1
-                sourceComponent: Item {
-                    // Extract from source data, never from the animated icon item.
-                    readonly property Kirigami.ImageColors colors: Kirigami.ImageColors { source: task.model.decoration }
-                }
-            }
+
         }
     }
 
@@ -1026,17 +1051,11 @@ PlasmaCore.ToolTipArea {
         radius: 0.5
         color: Qt.rgba(1.0, 1.0, 1.0, 0.28)
 
-        anchors {
-            // Horizontal dock: center vertically in capsule, position at left + dividerSpan/2
-            verticalCenter: !tasksRoot.vertical ? parent.verticalCenter : undefined
-            left: !tasksRoot.vertical ? parent.left : undefined
-            leftMargin: !tasksRoot.vertical ? Math.round(tasksRoot.dividerSpan / 2) : 0
+        x: tasksRoot.vertical ? (task.width - width) / 2
+            : (task.dividerAtEnd ? task.width - tasksRoot.dividerSpan / 2 - width : tasksRoot.dividerSpan / 2)
+        y: !tasksRoot.vertical ? (task.height - height) / 2
+            : (task.dividerAtEnd ? task.height - tasksRoot.dividerSpan / 2 - height : tasksRoot.dividerSpan / 2)
 
-            // Vertical dock: center horizontally in capsule, position at top + dividerSpan/2
-            horizontalCenter: tasksRoot.vertical ? parent.horizontalCenter : undefined
-            top: tasksRoot.vertical ? parent.top : undefined
-            topMargin: tasksRoot.vertical ? Math.round(tasksRoot.dividerSpan / 2) : 0
-        }
     }
 
     PlasmaComponents3.Label {

@@ -72,25 +72,26 @@ TestCase {
         verify(!Logic.nativeEnabled(2, 1, false));
         verify(Logic.nativeEnabled(0, 0, true)); // Existing popup frames.
     }
-    function test_countAndOverflow() {
+    function test_countAndLimit() {
         compare(Logic.count(false, false, 8), 0);
         compare(Logic.count(true, false, 0), 1);
         compare(Logic.count(true, true, 12), 12);
         let obj = createTemporaryObject(indicator, testCase);
         compare(obj.segments.length, 3);
         obj.windowCount = 100;
-        compare(obj.segments.length, 5);
-        verify(obj.segments[4].overflow);
+        compare(obj.segments.length, 4);
         obj.activeIndex = 50;
-        verify(obj.segments[4].active);
-        obj.configuration = {indicatorOverflow: false};
+        verify(obj.segments[3].active);
+        compare(obj.segments[3].index, -1); // Do not inherit a visible minimized child's state.
+        obj.configuration = {indicatorOverflow: true}; // Obsolete saved key is ignored.
         compare(obj.segments.length, 4);
         verify(obj.segments[3].active);
+        compare(obj.segments[3].index, -1); // Do not inherit a visible minimized child's state.
         obj.configuration = {indicatorMaxSegments: 1000};
-        compare(obj.segments.length, 9);
+        compare(obj.segments.length, 8);
         obj.windowCount = 1;
         compare(obj.segments.length, 1);
-        verify(!obj.segments[0].overflow);
+        verify(obj.segments[0].overflow === undefined);
         obj.configuration = {customIndicatorsEnabled: false};
         compare(obj.segments.length, 0);
     }
@@ -149,6 +150,23 @@ TestCase {
         let c = Logic.segmentColor(Qt.rgba(1,0,0,1), false, true, true, {indicatorDesaturate: true, indicatorInactiveOpacity: 20});
         fuzzyCompare(c.r, c.g, 0.01);
         fuzzyCompare(c.a, 0.2, 0.01);
+    }
+    function test_unfocusedColor() {
+        const red = Qt.color("red"), blue = Qt.color("blue");
+        const cfg = {indicatorUnfocusedColorEnabled: true, indicatorUnfocusedColor: blue,
+            indicatorDimInactive: false, indicatorHighlightActive: false};
+        compare(Logic.segmentColor(red, true, true, false, cfg), red);
+        compare(Logic.segmentColor(red, false, true, false, cfg), blue);
+        compare(Logic.segmentColor(red, false, false, false, cfg), blue);
+        cfg.indicatorDimInactive = true;
+        cfg.indicatorInactiveOpacity = 25;
+        fuzzyCompare(Logic.segmentColor(red, false, true, false, cfg).a, 0.25, 0.01);
+        cfg.indicatorDesaturate = true;
+        const gray = Logic.segmentColor(red, false, true, true, cfg);
+        fuzzyCompare(gray.r, gray.b, 0.01);
+        cfg.indicatorUnfocusedColorEnabled = false;
+        cfg.indicatorDimInactive = false;
+        compare(Logic.segmentColor(red, false, false, false, cfg), red);
     }
     function test_modelEventsAreBounded() {
         fakeModel.reads = 0;

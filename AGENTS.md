@@ -21,3 +21,7 @@
 - Indicators are pure QML; see docs/indicators.md. Preserve the default macOS dot,
   bounded Custom delegates, effective-edge orientation and independent native
   group/frame overrides. Do not extract colors from the animated icon item.
+- Capsule refinements: see docs/capsule-refinements.md. Share effectiveRadius
+  across visible surfaces and the blur bridge. Glow must fill a rounded path,
+  remain optional, and never capture animated icons. Separator spacing follows
+  the logical group boundary and the delegate's visual leading edge.

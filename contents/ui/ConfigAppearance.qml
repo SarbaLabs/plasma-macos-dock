@@ -45,6 +45,13 @@ KCMUtils.SimpleKCM {
     property color cfg_containerBorderColor: Plasmoid.configuration.containerBorderColor || "#38ffffff"
     property alias cfg_autoAdjustPanelThickness: autoAdjustPanelThicknessCheckBox.checked
 
+    property alias cfg_hoverGlowEnabled: hoverGlowEnabledControl.checked
+    property alias cfg_hoverGlowIntensity: hoverGlowIntensityControl.value
+    property alias cfg_hoverGlowRadius: hoverGlowRadiusControl.value
+    property alias cfg_hoverGlowOpacity: hoverGlowOpacityControl.value
+    property alias cfg_capsuleRadiusCustom: capsuleRadiusCustomControl.checked
+    property alias cfg_capsuleRadius: capsuleRadiusControl.value
+
     onCfg_zoomMultiplierChanged: {
         zoomMultiplierSpinBox.value = Math.round(cfg_zoomMultiplier * 10);
     }
@@ -228,6 +235,50 @@ KCMUtils.SimpleKCM {
             currentIndex: Plasmoid.configuration.containerBackgroundType !== undefined ? Plasmoid.configuration.containerBackgroundType : 0
         }
 
+        QQC2.CheckBox {
+            id: capsuleRadiusCustomControl
+            text: i18n("Use a custom corner radius")
+            checked: false
+        }
+        QQC2.SpinBox {
+            id: capsuleRadiusControl
+            visible: root.cfg_capsuleRadiusCustom
+            Kirigami.FormData.label: i18n("Corner radius (px):")
+            from: 0; to: 200; value: 10
+            editable: true
+        }
+        QQC2.CheckBox {
+            id: hoverGlowEnabledControl
+            text: i18n("Enable hover glow")
+            checked: false
+        }
+        QQC2.SpinBox {
+            id: hoverGlowIntensityControl
+            visible: root.cfg_hoverGlowEnabled
+            Kirigami.FormData.label: i18n("Glow intensity (%):")
+            from: 0; to: 200; value: 100
+            editable: true
+        }
+        QQC2.SpinBox {
+            id: hoverGlowRadiusControl
+            visible: root.cfg_hoverGlowEnabled
+            Kirigami.FormData.label: i18n("Glow radius (px):")
+            from: 1; to: 256; value: 70
+            editable: true
+        }
+        QQC2.SpinBox {
+            id: hoverGlowOpacityControl
+            visible: root.cfg_hoverGlowEnabled
+            Kirigami.FormData.label: i18n("Glow opacity (%):")
+            from: 0; to: 100; value: 30
+            editable: true
+        }
+        QQC2.Label {
+            visible: root.cfg_hoverGlowEnabled && containerBackgroundTypeComboBox.currentIndex === 1
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: i18n("Hover glow is hidden with a fully transparent capsule.")
+        }
         QQC2.Label {
             visible: (containerBackgroundTypeComboBox.currentIndex === 3 || containerBackgroundTypeComboBox.currentIndex === 4) && !root.blurPluginAvailable
             text: i18nc("@info:usagetip", "Hardware blur requires the optional C++ module from GitHub. Running in pure QML mode with a translucent glass fallback.")
@@ -445,3 +496,4 @@ KCMUtils.SimpleKCM {
         }
     }
 }
+

@@ -23,19 +23,19 @@ function count(running, grouped, children) {
     return running ? (grouped ? Math.max(1, Math.floor(Number(children) || 0)) : 1) : 0;
 }
 
-// A bounded list: at most eight windows and one overflow marker, regardless
-// of the actual group size. Geometry never contributes to the task's layout.
+// A bounded list: at most eight windows, regardless
+// of the actual group size. The last segment represents hidden active children.
+// Geometry never contributes to the task's layout.
 function segments(config, count, activeIndex, hovered, available, padding) {
     if (!flag(config, "customIndicatorsEnabled", true) || count <= 0) return [];
     const limit = Math.round(number(config, "indicatorMaxSegments", 4, 1, 8));
     const shown = Math.min(count, limit);
-    const plus = flag(config, "indicatorOverflow", true) && count > shown;
+
     const style = Math.round(number(config, "indicatorStyle", 0, 0, 2));
     const spacing = number(config, "indicatorSpacing", 2, 0, 16);
     const result = [];
-    for (let i = 0; i < shown + (plus ? 1 : 0); ++i) {
-        const overflow = i === shown;
-        const active = i === activeIndex || ((overflow || (!plus && i === shown - 1)) && activeIndex >= shown);
+    for (let i = 0; i < shown; ++i) {
+        const active = i === activeIndex || (i === shown - 1 && activeIndex >= shown);
         let length = number(config, "indicatorLength", 12, 1, 160);
         let thickness = number(config, "indicatorThickness", 4, 1, 24);
         if (count > 1 && flag(config, "indicatorGroupSeparate", false)) {
@@ -52,9 +52,9 @@ function segments(config, count, activeIndex, hovered, available, padding) {
             thickness = number(config, separate ? "indicatorHoverThickness" : "indicatorActiveThickness", 5, 1, 24);
         }
         thickness = Math.min(thickness, Math.max(1, padding));
-        if (style === 0 || overflow) length = thickness;
+        if (style === 0) length = thickness;
         else if (style === 1) length /= shown;
-        result.push({active: active, overflow: overflow, index: i, length: length, thickness: thickness});
+        result.push({active: active, index: active && activeIndex >= shown ? -1 : i, length: length, thickness: thickness});
     }
     const gap = Math.min(spacing, Math.max(0, available) / (result.length * 2));
     const total = result.reduce((sum, s) => sum + s.length, 0);
@@ -63,7 +63,7 @@ function segments(config, count, activeIndex, hovered, available, padding) {
     let offset = (available - used) / 2;
     for (const segment of result) {
         segment.length *= scale;
-        if (style === 0 || segment.overflow) segment.thickness = Math.min(segment.thickness, segment.length);
+        if (style === 0) segment.thickness = Math.min(segment.thickness, segment.length);
         segment.offset = offset;
         offset += segment.length + gap;
     }
@@ -75,7 +75,8 @@ function baseColor(mode, accent, dominant, custom) {
     return accent;
 }
 function segmentColor(base, active, grouped, minimized, config) {
-    let c = base;
+    let c = !active && flag(config, "indicatorUnfocusedColorEnabled", false)
+        ? Qt.color(config.indicatorUnfocusedColor || "#3daee9") : base;
     if (minimized && flag(config, "indicatorDesaturate", false)) c = Qt.hsla(c.hslHue, 0, c.hslLightness, c.a);
     const dim = !active && (flag(config, "indicatorDimInactive", true)
         || (grouped && flag(config, "indicatorHighlightActive", true)));

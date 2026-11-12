@@ -3,7 +3,7 @@
     SPDX-FileCopyrightText: 2025 SushiTrash <strash137@gmail.com>
     SPDX-License-Identifier: GPL-2.0-or-later
 */
-// State sizing, segment emphasis and overflow concept adapted from Fancy Tasks NG.
+// State sizing, segment emphasis and bounded-window approach adapted from Fancy Tasks NG.
 // Layout is independent of its Flow/task infrastructure and bounded to the slot.
 import QtQuick
 import "code/IndicatorLogic.js" as Logic
@@ -37,7 +37,7 @@ Item {
             id: segment
             required property int index
             objectName: "indicatorSegment" + index
-            readonly property var modelData: root.segments[index] || ({active: false, overflow: false, index: index, length: 0, thickness: 0, offset: 0})
+            readonly property var modelData: root.segments[index] || ({active: false, index: index, length: 0, thickness: 0, offset: 0})
             readonly property real cross: {
                 const alignment = Logic.number(root.configuration, "indicatorAlignment", 1, 0, 2);
                 const difference = root.lane - modelData.thickness;
@@ -51,26 +51,12 @@ Item {
             x: root.vertical ? (root.edge === 2 ? -outside - width : root.width + outside) : modelData.offset
             y: root.vertical ? modelData.offset : (root.edge === 1 ? -outside - height : root.height + outside)
             radius: Math.min(width, height) * (Logic.number(root.configuration, "indicatorStyle", 0, 0, 2) === 0 ? 100 : Logic.number(root.configuration, "indicatorRoundness", 100, 0, 100)) / 200
-            color: modelData.overflow ? "transparent" : ink
+            color: ink
             Behavior on x { enabled: root.animated; NumberAnimation { duration: 120 } }
             Behavior on y { enabled: root.animated; NumberAnimation { duration: 120 } }
             Behavior on width { enabled: root.animated; NumberAnimation { duration: 120 } }
             Behavior on height { enabled: root.animated; NumberAnimation { duration: 120 } }
             Behavior on color { enabled: root.animated; ColorAnimation { duration: 120 } }
-            Rectangle {
-                visible: segment.modelData.overflow
-                anchors.centerIn: parent
-                width: parent.width
-                height: Math.min(parent.height, Math.max(1, parent.height / 4))
-                color: segment.ink
-            }
-            Rectangle {
-                visible: segment.modelData.overflow
-                anchors.centerIn: parent
-                height: parent.height
-                width: Math.min(parent.width, Math.max(1, parent.width / 4))
-                color: segment.ink
-            }
         }
     }
 }

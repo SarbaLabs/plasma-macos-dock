@@ -18,6 +18,7 @@ public Q_SLOTS:
         if (!schema.open(QIODevice::ReadOnly)) qFatal("Cannot open configuration schema");
         QXmlStreamReader xml(&schema);
         QVariantMap defaults;
+        QVariantMap capsuleDefaults;
         QString name;
         QString type;
         while (!xml.atEnd()) {
@@ -28,6 +29,9 @@ public Q_SLOTS:
                 type = xml.attributes().value(u"type").toString();
             } else if (xml.name() == u"default") {
                 const QString value = xml.readElementText();
+                if (name.startsWith(u"hoverGlow") || name.startsWith(u"capsuleRadius")) {
+                    capsuleDefaults.insert(name, type == u"Bool" ? QVariant(value == u"true") : QVariant(value.toInt()));
+                }
                 if (name.startsWith(u"indicator") || name == u"customIndicatorsEnabled"
                     || name == u"nativeGroupIndicator" || name == u"taskDecorations") {
                     defaults.insert(name, type == u"Bool" ? QVariant(value == u"true")
@@ -37,6 +41,7 @@ public Q_SLOTS:
         }
         if (xml.hasError()) qFatal("Invalid configuration schema");
         engine->rootContext()->setContextProperty(QStringLiteral("indicatorDefaults"), defaults);
+        engine->rootContext()->setContextProperty(QStringLiteral("capsuleDefaults"), capsuleDefaults);
         auto *localized = new KLocalizedContext(engine);
         localized->setTranslationDomain(QStringLiteral("plasma_applet_com.github.mattanis.macosdock"));
         engine->rootContext()->setContextObject(localized);

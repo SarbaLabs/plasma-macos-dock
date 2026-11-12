@@ -6,6 +6,38 @@
   <kcfgfile name=""/>
 
   <group name="General">
+    <entry name="indicatorUnfocusedColorEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="indicatorUnfocusedColor" type="Color">
+      <default>#3daee9</default>
+    </entry>
+    <entry name="hoverGlowEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="hoverGlowIntensity" type="Int">
+      <default>100</default>
+      <min>0</min>
+      <max>200</max>
+    </entry>
+    <entry name="hoverGlowRadius" type="Int">
+      <default>70</default>
+      <min>1</min>
+      <max>256</max>
+    </entry>
+    <entry name="hoverGlowOpacity" type="Int">
+      <default>30</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
+    <entry name="capsuleRadiusCustom" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="capsuleRadius" type="Int">
+      <default>10</default>
+      <min>0</min>
+      <max>200</max>
+    </entry>
     <entry name="indicatorMode" type="Int">
       <label>Indicator mode</label>
       <default>0</default>
@@ -142,10 +174,7 @@
       <min>1</min>
       <max>8</max>
     </entry>
-    <entry name="indicatorOverflow" type="Bool">
-      <label>Show + for additional windows</label>
-      <default>true</default>
-    </entry>
+
     <entry name="indicatorHighlightActive" type="Bool">
       <label>Highlight the active window in a group</label>
       <default>true</default>
