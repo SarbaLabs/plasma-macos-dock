@@ -18,3 +18,6 @@
   docs/application-context-menus.md. Preserve ContextMenu.qml's Pin/Unpin and
   Test Bounce Animation handlers; never instantiate Plasma's full private Backend
   or concatenate shell command strings for Places/recents.
+- Indicators are pure QML; see docs/indicators.md. Preserve the default macOS dot,
+  bounded Custom delegates, effective-edge orientation and independent native
+  group/frame overrides. Do not extract colors from the animated icon item.

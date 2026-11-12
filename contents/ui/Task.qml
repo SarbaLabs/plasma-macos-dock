@@ -17,6 +17,7 @@ import org.kde.plasma.components as PlasmaComponents3
 import org.kde.kirigami as Kirigami
 import "code/LayoutMetrics.js" as LayoutMetrics
 import "code/TaskTools.js" as TaskTools
+import "code/IndicatorLogic.js" as IndicatorLogic
 import org.kde.plasma.plasmoid
 import org.kde.taskmanager as TaskManager
 
@@ -151,6 +152,14 @@ PlasmaCore.ToolTipArea {
 
         hasAttention = att;
     }
+
+    readonly property int indicatorMode: IndicatorLogic.mode(Plasmoid.configuration)
+    readonly property int indicatorEdge: tasksRoot.effectiveLocation === PlasmaCore.Types.TopEdge ? 1
+        : tasksRoot.effectiveLocation === PlasmaCore.Types.LeftEdge ? 2
+        : tasksRoot.effectiveLocation === PlasmaCore.Types.RightEdge ? 3 : 0
+    readonly property bool taskDecorations: IndicatorLogic.nativeEnabled(Plasmoid.configuration.taskDecorations, indicatorMode, inPopup)
+    readonly property bool nativeGroupVisible: !inPopup && model.IsGroupParent && childCount > 1
+        && IndicatorLogic.nativeEnabled(Plasmoid.configuration.nativeGroupIndicator, indicatorMode, false)
 
     readonly property bool isRunning: Boolean(task.model.IsWindow || (task.childCount > 0))
     readonly property bool demandsAttention: hasAttention || Boolean(task.model.IsDemandingAttention || (task.smartLauncherItem && task.smartLauncherItem.urgent) || task.model.IsStartup)
@@ -664,7 +673,7 @@ PlasmaCore.ToolTipArea {
 
     KSvg.FrameSvgItem {
         id: frame
-        opacity: task.inPopup ? 1 : 0
+        opacity: task.taskDecorations ? 1 : 0
 
         anchors {
             fill: parent
@@ -678,7 +687,7 @@ PlasmaCore.ToolTipArea {
         imagePath: "widgets/tasks"
         property bool isHovered: task.highlighted && Plasmoid.configuration.taskHoverEffect
         property string basePrefix: "normal"
-        prefix: isHovered ? TaskTools.taskPrefixHovered(basePrefix, Plasmoid.location) : TaskTools.taskPrefix(basePrefix, Plasmoid.location)
+        prefix: isHovered ? TaskTools.taskPrefixHovered(basePrefix, tasksRoot.effectiveLocation) : TaskTools.taskPrefix(basePrefix, tasksRoot.effectiveLocation)
 
         // Avoid repositioning delegate item after dragFinished
         DragHandler {
@@ -771,6 +780,7 @@ PlasmaCore.ToolTipArea {
 
             anchors.fill: parent
             roundToIconSize: false
+
             active: task.highlighted
             enabled: true
 
@@ -903,7 +913,7 @@ PlasmaCore.ToolTipArea {
 
     Rectangle {
         id: runningDot
-        visible: task.isRunning && !task.inPopup
+        visible: task.indicatorMode === 0 && task.isRunning && !task.inPopup
         width: 4
         height: 4
         radius: 2
@@ -939,6 +949,69 @@ PlasmaCore.ToolTipArea {
             // Right panel: placed to the right of the icon in the right padding
             left: (tasksRoot.vertical && tasksRoot.effectiveLocation === PlasmaCore.Types.RightEdge) ? parent.right : undefined
             leftMargin: (tasksRoot.vertical && tasksRoot.effectiveLocation === PlasmaCore.Types.RightEdge) ? padOffset : 0
+        }
+    }
+
+    Loader {
+        anchors.fill: parent
+        active: !task.inPopup && task.indicatorMode === 1 && task.isRunning && !task.taskDecorations
+        sourceComponent: NativeTaskIndicator {
+            edge: task.indicatorEdge
+            prefixes: frame.prefix
+        }
+    }
+
+    Loader {
+        anchors.fill: parent
+        active: task.nativeGroupVisible
+        sourceComponent: Item {
+            GroupExpanderOverlay {
+                iconTarget: iconBox
+                edge: task.indicatorEdge
+                grouped: true
+            }
+        }
+    }
+
+    Loader {
+        id: customIndicatorLoader
+        x: tasksRoot.vertical ? 0 : task.dividerOffset
+        y: tasksRoot.vertical ? task.dividerOffset : 0
+        width: task.width - x
+        height: task.height - y
+        active: !task.inPopup && task.indicatorMode === 2 && task.isRunning
+        sourceComponent: CustomIndicators {
+            id: customIndicators
+            configuration: Plasmoid.configuration
+            effectiveEdge: task.indicatorEdge
+            horizontalPadding: tasksRoot.horizontalPadding
+            verticalPadding: tasksRoot.verticalPadding
+            windowCount: IndicatorLogic.count(task.isRunning, task.model.IsGroupParent, task.childCount)
+            activeIndex: indicatorState.activeIndex
+            minimizedWindows: indicatorState.minimizedWindows
+            hovered: task.highlighted
+            accentColor: Kirigami.Theme.highlightColor
+            dominantColor: colorsLoader.item ? colorsLoader.item.colors.dominant : "transparent"
+
+            readonly property IndicatorTaskState indicatorState: IndicatorTaskState {
+                tasksModel: task.tasksModel
+                taskIndex: task.index
+                minimizedRole: TaskManager.AbstractTasksModel.IsMinimized
+                enabled: true
+                grouped: task.model.IsGroupParent
+                active: task.model.IsActive
+                minimized: task.model.IsMinimized
+                windowCount: customIndicators.windowCount
+                limit: IndicatorLogic.number(Plasmoid.configuration, "indicatorMaxSegments", 4, 1, 8)
+            }
+            Loader {
+                id: colorsLoader
+                active: Plasmoid.configuration.indicatorColorSource === 1
+                sourceComponent: Item {
+                    // Extract from source data, never from the animated icon item.
+                    readonly property Kirigami.ImageColors colors: Kirigami.ImageColors { source: task.model.decoration }
+                }
+            }
         }
     }
 
@@ -1054,3 +1127,4 @@ PlasmaCore.ToolTipArea {
         }
     }
 }
+
