@@ -17,7 +17,15 @@ include(KDECompilerSettings NO_POLICY_SCOPE)
 include(FeatureSummary)
 
 find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Core Quick Gui Qml)
-find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS WindowSystem)
+# Explicit Config/CoreAddons discovery also supports older Plasma CMake exports.
+find_package(KF6 ${KF6_MIN_VERSION} REQUIRED COMPONENTS WindowSystem Config CoreAddons)
+find_package(Plasma REQUIRED)
+
+include(CTest)
+if(BUILD_TESTING)
+    find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Test)
+    add_subdirectory(tests)
+endif()
 
 # Single self-contained QML extension plugin library
 add_library(dockblurplugin SHARED
@@ -39,6 +47,7 @@ target_link_libraries(dockblurplugin
     Qt6::Gui
     Qt6::Qml
     KF6::WindowSystem
+    Plasma::Plasma
 )
 
 # Install QML module plugin and qmldir
@@ -67,3 +76,4 @@ if(NOT BUILD_PLUGIN_ONLY)
         RENAME com.github.mattanis.macosdock.png
     )
 endif()
+

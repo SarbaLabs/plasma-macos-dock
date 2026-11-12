@@ -1,0 +1,24 @@
+name: Blur lifecycle checks
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [fix/blur-after-panel-restore]
+permissions:
+  contents: read
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Install build and test dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git cmake g++ make extra-cmake-modules qt6-base-dev qt6-declarative-dev libkf6windowsystem-dev libplasma-dev qml6-module-qtquick qml6-module-qtqml-workerscript
+      - uses: actions/checkout@v4
+      - name: Build native plugin and regression tests
+        run: |
+          cmake -S . -B build -DBUILD_PLUGIN_ONLY=ON -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build --parallel 2
+      - name: Run offscreen lifecycle tests
+        run: ctest --test-dir build --output-on-failure

@@ -123,7 +123,7 @@ info "Configuring with CMake..."
 if ! cmake -B build -S . "${CMAKE_ARGS[@]}"; then
     echo ""
     error "CMake configuration failed."
-    echo "You may be missing required development headers (ECM, Qt6, KF6 WindowSystem)."
+    echo "You may be missing required development headers (ECM, Qt6, KF6 WindowSystem, libplasma)."
     echo "Check README.md -> 'Build Dependencies' for your distribution's package command."
     exit 1
 fi
@@ -163,3 +163,4 @@ fi
 
 echo ""
 success "Done!"
+

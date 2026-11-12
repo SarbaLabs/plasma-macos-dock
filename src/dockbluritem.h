@@ -9,6 +9,7 @@
 #include <QQuickItem>
 #include <QRectF>
 #include <QRegion>
+#include <QTimer>
 #include <qqmlregistration.h>
 
 class QQuickWindow;
@@ -50,14 +51,17 @@ Q_SIGNALS:
     void intensityChanged();
 
 protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
     void itemChange(ItemChange change, const ItemChangeData &value) override;
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
 
 public Q_SLOTS:
     void updateBlurRegion();
+    void scheduleBlurRestore();
 
 private:
     void clearBlurRegion();
+    void trackWindow(QQuickWindow *newWindow);
 
     bool m_blurEnabled = true;
     qreal m_cornerRadius = 0.0;
@@ -65,5 +69,9 @@ private:
     qreal m_contrast = 1.0;
     qreal m_intensity = 1.0;
     QRect m_lastAppliedRect;
+    bool m_effectsApplied = false;
+    bool m_surfaceBeingDestroyed = false;
+    QTimer m_restoreTimer;
     QPointer<QQuickWindow> m_trackedWindow;
 };
+

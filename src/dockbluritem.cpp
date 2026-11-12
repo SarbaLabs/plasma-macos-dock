@@ -6,17 +6,47 @@
 #include "dockbluritem.h"
 
 #include <KWindowEffects>
+#include <Plasma/Theme>
 #include <QPainterPath>
+#include <QPlatformSurfaceEvent>
 #include <QQuickWindow>
 
 DockBlurItem::DockBlurItem(QQuickItem *parent)
     : QQuickItem(parent)
 {
     setFlag(ItemHasContents, false);
+    m_restoreTimer.setSingleShot(true);
+    m_restoreTimer.setInterval(0);
+    connect(&m_restoreTimer, &QTimer::timeout, this, [this] {
+        if (!m_trackedWindow || m_surfaceBeingDestroyed || !m_trackedWindow->isVisible()
+            || !m_trackedWindow->isExposed() || !isVisible() || !m_blurEnabled) {
+            return;
+        }
+        // KWindowSystem also caches regions. Reset both effects before restoring
+        // them, after the panel has processed the triggering event/signal.
+        clearBlurRegion();
+        updateBlurRegion();
+        m_trackedWindow->update();
+    });
+    // PanelView clears NoBackground effects on this same deferred notification,
+    // including wallpaper-derived accent palette changes with a stationary panel.
+    // Listen to the shared Plasma theme, not the earlier application palette
+    // event: Plasma may otherwise clear the effects after our restoration.
+    auto *theme = new Plasma::Theme(this);
+    connect(theme, &Plasma::Theme::themeChanged, this, &DockBlurItem::scheduleBlurRestore);
+    connect(this, &QQuickItem::windowChanged, this, &DockBlurItem::trackWindow);
+    trackWindow(window());
 }
 
 DockBlurItem::~DockBlurItem()
 {
+    m_restoreTimer.stop();
+    // QQuickItem emits windowChanged while detaching in its base destructor.
+    disconnect(this, &QQuickItem::windowChanged, this, &DockBlurItem::trackWindow);
+    if (m_trackedWindow) {
+        m_trackedWindow->removeEventFilter(this);
+        disconnect(m_trackedWindow.data(), nullptr, this, nullptr);
+    }
     clearBlurRegion();
 }
 
@@ -94,23 +124,81 @@ void DockBlurItem::setIntensity(qreal val)
     }
 }
 
+void DockBlurItem::trackWindow(QQuickWindow *newWindow)
+{
+    if (m_trackedWindow == newWindow) {
+        return;
+    }
+    if (m_trackedWindow) {
+        m_trackedWindow->removeEventFilter(this);
+        disconnect(m_trackedWindow.data(), nullptr, this, nullptr);
+        clearBlurRegion();
+    }
+    m_restoreTimer.stop();
+    m_lastAppliedRect = QRect();
+    m_effectsApplied = false;
+    m_surfaceBeingDestroyed = false;
+    m_trackedWindow = newWindow;
+    if (m_trackedWindow) {
+        m_trackedWindow->installEventFilter(this);
+        connect(m_trackedWindow.data(), &QWindow::visibleChanged, this, &DockBlurItem::scheduleBlurRestore);
+        // afterAnimating runs on the GUI thread, including with the threaded
+        // render loop. Keep tracking ancestor transforms without KWin writes
+        // when the mapped rectangle has not changed.
+        connect(m_trackedWindow.data(), &QQuickWindow::afterAnimating, this, &DockBlurItem::updateBlurRegion);
+        scheduleBlurRestore();
+    }
+}
+
 void DockBlurItem::itemChange(ItemChange change, const ItemChangeData &value)
 {
-    if (change == ItemSceneChange) {
-        if (m_trackedWindow) {
-            disconnect(m_trackedWindow.data(), nullptr, this, nullptr);
-            clearBlurRegion();
-        }
-        m_trackedWindow = window();
-        if (m_trackedWindow) {
-            connect(m_trackedWindow.data(), &QWindow::visibleChanged, this, &DockBlurItem::updateBlurRegion);
-            connect(m_trackedWindow.data(), &QQuickWindow::beforeRendering, this, &DockBlurItem::updateBlurRegion);
-            updateBlurRegion();
-        }
-    } else if (change == ItemVisibleHasChanged) {
+    if (change == ItemVisibleHasChanged) {
         updateBlurRegion();
     }
     QQuickItem::itemChange(change, value);
+}
+
+bool DockBlurItem::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_trackedWindow) {
+        switch (event->type()) {
+        case QEvent::PlatformSurface: {
+            const auto *surfaceEvent = static_cast<QPlatformSurfaceEvent *>(event);
+            if (surfaceEvent->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {
+                m_restoreTimer.stop();
+                // The surface is still valid during this notification. Remove
+                // remembered requests before teardown, including if this item
+                // is deleted before the window creates another surface.
+                clearBlurRegion();
+                m_surfaceBeingDestroyed = true;
+            } else {
+                m_surfaceBeingDestroyed = false;
+                scheduleBlurRestore();
+            }
+            break;
+        }
+        case QEvent::Show:
+        case QEvent::Hide:
+        case QEvent::Expose:
+        case QEvent::Move:
+        case QEvent::Resize:
+            scheduleBlurRestore();
+            break;
+        default:
+            break;
+        }
+    }
+    return QQuickItem::eventFilter(watched, event);
+}
+
+void DockBlurItem::scheduleBlurRestore()
+{
+    m_lastAppliedRect = QRect();
+    // A single queued pass coalesces notifications and runs after PanelView's
+    // own blur/contrast updates. No polling or render-thread effect calls.
+    if (!m_restoreTimer.isActive()) {
+        m_restoreTimer.start();
+    }
 }
 
 void DockBlurItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
@@ -121,19 +209,26 @@ void DockBlurItem::geometryChange(const QRectF &newGeometry, const QRectF &oldGe
 
 void DockBlurItem::clearBlurRegion()
 {
-    if (m_trackedWindow) {
+    if (m_trackedWindow && !m_surfaceBeingDestroyed) {
         KWindowEffects::enableBlurBehind(m_trackedWindow.data(), false);
         KWindowEffects::enableBackgroundContrast(m_trackedWindow.data(), false);
     }
     m_lastAppliedRect = QRect();
+    m_effectsApplied = false;
 }
 
 void DockBlurItem::updateBlurRegion()
 {
-    if (!m_trackedWindow || !isVisible() || !m_blurEnabled || width() <= 0 || height() <= 0) {
-        if (!m_lastAppliedRect.isEmpty()) {
+    if (!m_trackedWindow || m_surfaceBeingDestroyed) {
+        return;
+    }
+    if (!isVisible() || !m_blurEnabled || width() <= 0 || height() <= 0) {
+        if (m_effectsApplied) {
             clearBlurRegion();
         }
+        return;
+    }
+    if (!m_trackedWindow->isVisible() || !m_trackedWindow->isExposed() || m_restoreTimer.isActive()) {
         return;
     }
 
@@ -157,4 +252,6 @@ void DockBlurItem::updateBlurRegion()
 
     KWindowEffects::enableBlurBehind(m_trackedWindow.data(), true, blurRegion);
     KWindowEffects::enableBackgroundContrast(m_trackedWindow.data(), true, m_contrast, m_intensity, m_saturation, blurRegion);
+    m_effectsApplied = true;
 }
+

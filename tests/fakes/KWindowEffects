@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+#pragma once
+#include <QRegion>
+class QWindow;
+
+// Observe effect requests without requiring KWin or changing desktop effects.
+namespace KWindowEffects {
+void enableBlurBehind(QWindow *, bool, const QRegion & = QRegion());
+void enableBackgroundContrast(QWindow *, bool, qreal = 1, qreal = 1,
+                              qreal = 1, const QRegion & = QRegion());
+}
