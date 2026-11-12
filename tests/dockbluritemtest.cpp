@@ -3,6 +3,8 @@
 #include <KWindowEffects>
 #include <Plasma/Theme>
 #include <QExposeEvent>
+#include <QDir>
+#include <QFile>
 #include <QGuiApplication>
 #include <QHash>
 #include <QPainterPath>
@@ -11,6 +13,7 @@
 #include <QQmlEngine>
 #include <QQuickWindow>
 #include <QTest>
+#include <QTemporaryDir>
 #include <QThread>
 #include <memory>
 
@@ -156,7 +159,24 @@ private Q_SLOTS:
     void panelResetWhileWindowStaysVisible()
     {
         qmlRegisterType<DockBlurItem>("com.github.mattanis.macosdock.blur", 1, 0, "DockBlurArea");
+        // An installed native module must not replace this test's registration:
+        // its KWindowEffects calls bypass our recording backend.
+        QVERIFY(qmlProtectModule("com.github.mattanis.macosdock.blur", 1));
+        // Unversioned imports still resolve a qmldir. Shadow the installed
+        // descriptor with a plugin-free module containing our registered type.
+        QTemporaryDir testImports;
+        QVERIFY(testImports.isValid());
+        const QString modulePath = testImports.path() + QStringLiteral("/com/github/mattanis/macosdock/blur");
+        QVERIFY(QDir().mkpath(modulePath));
+        QFile qmldir(modulePath + QStringLiteral("/qmldir"));
+        QVERIFY(qmldir.open(QIODevice::WriteOnly));
+        const QByteArray descriptor("module com.github.mattanis.macosdock.blur\n");
+        QCOMPARE(qmldir.write(descriptor), qint64(descriptor.size()));
+        qmldir.close();
         QQmlEngine engine;
+        // Reproduce the installed-plugin environment even on a clean CI runner.
+        engine.addImportPath(QStringLiteral(DOCK_TEST_PLUGIN_DIR));
+        engine.addImportPath(testImports.path());
         QQmlComponent component(&engine);
         component.setData(R"(
             import QtQuick

@@ -331,3 +331,44 @@ panel visible, hidden behind a window, and during floating/overlap transitions.
 Check ordinary theme/color changes as well. The accent-disabled case is a useful
 control, not a workaround. Record the exact Plasma/Qt/KF versions and any remaining
 flicker or loss; visual success is pending the maintainer's confirmation.
+
+## Follow-up: installed-plugin test isolation (2026-11-12)
+
+The maintainer reports that the updated dock works correctly on CachyOS, but
+Qt 6.12's test run fails at panelResetWhileWindowStaysVisible's initial blur
+assertion. The other lifecycle and palette tests pass. This report is not a
+claim that every manual acceptance scenario has been completed.
+
+Reproduced locally on Qt 6.8.2 by placing the real native module on the QML
+import path: QML loads that plugin despite the test's qmlRegisterType call,
+replacing the instrumented DockBlurItem registration. Calls then go to the real
+KWindowEffects backend instead of the test recorder, so its blur flag stays
+false. This is test contamination by the installed module, not evidence of a
+new runtime blur failure or a Qt 6.12-only regression.
+
+The test now gives a temporary plugin-free qmldir precedence over installed
+modules and protects its registered type with qmlProtectModule. The descriptor
+is necessary because the bridge's unversioned import still resolves a qmldir;
+protecting the registration alone does not stop that plugin lookup.
+A build-local copy of the real plugin and qmldir is
+explicitly added to the test import path to exercise this situation on clean CI
+runners too. No production source, installed plugin or QML behavior is changed.
+The offscreen warning "Could not find any platform plugin" is expected from
+KWindowSystem; unlike the failed assertion, it does not fail the test.
+
+Validation: the unisolated test reproduced the exact initial blur assertion
+failure with the native plugin on the import path. After isolation, the full
+suite passes locally with that plugin fixture: 1/1 CTest executable, seven
+QtTest passes, zero failures, 8.55 seconds on Qt 6.8.2. Qt 6.12 remains to be
+checked by the maintainer; no production fix is required by this result.
+
+To update only the tests in an existing configured checkout:
+
+```bash
+cd ~/git/plasma-macos-dock
+git pull --ff-only origin fix/blur-after-panel-restore
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+No reinstall or Plasma Shell restart is required for this test-only correction.
