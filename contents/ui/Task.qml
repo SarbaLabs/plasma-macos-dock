@@ -22,7 +22,7 @@ import "code/CapsuleGeometry.js" as CapsuleGeometry
 import org.kde.plasma.plasmoid
 import org.kde.taskmanager as TaskManager
 
-PlasmaCore.ToolTipArea {
+TaskToolTipArea {
     id: task
 
     activeFocusOnTab: true
@@ -314,8 +314,6 @@ PlasmaCore.ToolTipArea {
         task.toolTipOpen = toolTipVisible;
         if (!toolTipVisible) {
             tasksRoot.toolTipOpenedByClick = null;
-        } else {
-            tasksRoot.toolTipAreaItem = task;
         }
     }
 
@@ -325,8 +323,8 @@ PlasmaCore.ToolTipArea {
             ? 0
             : Kirigami.Units.toolTipDelay
         onTriggered: {
-            if (task.isTaskHovered && task.active && !task.toolTipOpen) {
-                task.updateMainItemBindings();
+            if (task.isTaskHovered && task.active
+                && (!task.toolTipOpen || task.mainItem.parentTask !== task)) {
                 task.showToolTip();
             }
         }
@@ -529,11 +527,14 @@ PlasmaCore.ToolTipArea {
 
     // Will also be called in activateTaskAtIndex(index)
     function updateMainItemBindings(): void {
-        if ((mainItem.parentTask === this && mainItem.rootIndex.row === index)
-            || (tasksRoot.toolTipOpenedByClick === null && !active)
+        if ((tasksRoot.toolTipOpenedByClick === null && !active)
             || (tasksRoot.toolTipOpenedByClick !== null && tasksRoot.toolTipOpenedByClick !== this)) {
             return;
         }
+
+        // Visibility belongs to Plasma's shared dialog, not to one task.
+        tasksRoot.toolTipAreaItem = this;
+        if (mainItem.parentTask === this && mainItem.rootIndex.row === index) return;
 
         mainItem.blockingUpdates = (mainItem.isGroup !== model.IsGroupParent); // BUG 464597 Force unload the previous component
 
@@ -558,7 +559,6 @@ PlasmaCore.ToolTipArea {
         mainItem.smartLauncherCount = Qt.binding(() => mainItem.smartLauncherCountVisible ? (smartLauncherItem?.count ?? 0) : 0);
 
         mainItem.blockingUpdates = false;
-        tasksRoot.toolTipAreaItem = this;
     }
 
     Connections {
@@ -611,12 +611,13 @@ PlasmaCore.ToolTipArea {
         width: tasksRoot.vertical ? (parent.width + (tasksRoot ? tasksRoot.horizontalPadding : 8) + task.maxElevatedReach) : (parent.width + task.halfSpacing * 2)
         height: !tasksRoot.vertical ? (parent.height + (tasksRoot ? tasksRoot.verticalPadding : 8) + task.maxElevatedReach) : (parent.height + task.halfSpacing * 2)
 
-        HoverHandler {
+        TaskHoverHandler {
             id: taskHoverHandler
             enabled: !task.inPopup
-            onPointChanged: {
-                if (hovered && tasksRoot && tasksRoot.zoomEnabled) {
-                    task.reportContinuousHover(point.position);
+            capsuleTracker: tasksRoot.capsuleHoverTracker
+            onPositionUpdated: position => {
+                if (tasksRoot && tasksRoot.zoomEnabled) {
+                    task.reportContinuousHover(position);
                 }
             }
         }

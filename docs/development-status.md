@@ -9,9 +9,8 @@ All pull requests target this fork's `master`.
   Includes panel hide/show and wallpaper-derived accent/theme updates.
 - **PR #2 — native application context menus:** tested and merged before the
   indicator work. Preserve desktop actions, Places, recents, Pin/Unpin and bounce.
-- **PR #3 — indicators and capsule refinements:** the maintainer has accepted the
-  current result and requested final documentation/readiness preparation. The
-  maintainer will perform the merge; the PR remains open until then.
+- **PR #3 — indicators and capsule refinements:** tested and merged by the maintainer
+  into master (`72cb546150f86b683cd1058803ade7b3b7781b6f`).
 
 The PR #3 scope includes macOS/Plasma/Custom modes, native group symbols and task
 frame controls, separate unfocused colors, removal of the Custom +, corrected
@@ -43,7 +42,7 @@ references and whitespace; the PR's checks show the current commit's CI status.
 
 ## Merge and release policy
 
-- Ready for maintainer review/manual merge into **SarbaLabs/master**.
+- PR #3 was merged by the maintainer. Subsequent fixes target **SarbaLabs/master**.
 - Release selection: **none**. No version bump or release publication.
 - No automatic merge has been enabled or performed.
 - After merge, update the existing `~/git/plasma-macos-dock` checkout from this
@@ -59,3 +58,11 @@ references and whitespace; the PR's checks show the current commit's CI status.
 - [Indicators](indicators.md): rendering modes, settings, source attribution.
 - [Capsule refinements](capsule-refinements.md): separator, glow, radius, hover regressions.
 - [AGENTS.md](../AGENTS.md): constraints for future development sessions.
+
+## Post-merge tooltip correction
+
+`fix/tooltip-hover-continuity` addresses stale shared tooltip contents and glow
+loss when native ToolTipArea accepts hover events. See the follow-up section in
+[capsule refinements](capsule-refinements.md) for evidence and regression coverage.
+This correction awaits separate maintainer validation on CachyOS; PR #3 acceptance
+does not imply acceptance of the new fix.

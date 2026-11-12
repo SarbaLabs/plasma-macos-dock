@@ -233,6 +233,7 @@ PlasmoidItem {
     property Item glowTask: null
     property point glowPosition: Qt.point(0, 0)
     readonly property bool glowHovering: glowTracker.hoveredTask !== null
+    property alias capsuleHoverTracker: glowTracker
     CapsuleHoverTracker {
         id: glowTracker
         enabled: tasks.hoverGlowAvailable

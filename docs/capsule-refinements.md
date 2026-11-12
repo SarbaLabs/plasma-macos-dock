@@ -166,3 +166,70 @@ failed on the high-z observer and passed after attaching the observer to the
 common ancestor. All four locally available CTest suites passed (10.04 seconds);
 additional capsule-movement and disabled-observer tests passed. Desktop zoom and
 running-task appearance still require maintainer confirmation on Plasma Wayland.
+
+## Follow-up: shared native tooltip hover (after PR #3 merge)
+
+The maintainer's recording shows the application label staying on the previous
+application after the tooltip opens, together with the glow disappearing until
+leaving and re-entering the dock. Magnification still follows the pointer.
+
+Two independent mechanisms were verified:
+
+- Plasma `ToolTipArea` accepts hover events. A real native ToolTipArea fixture
+  prevented the ancestor-only glow observer from receiving task hover, whereas
+  the earlier MouseArea fixture did not. `blocking: false` on the ancestor does
+  not make native item hover delivery transparent.
+- `ToolTipArea::hoverEnterEvent()` calls `showToolTip()` directly when transferring
+  an already visible shared dialog. Updating the shared delegate only in our
+  separate timer misses that path; the timer's old `!toolTipOpen` guard can also
+  skip it. Native dialog visibility notifications are shared by previously
+  connected areas and cannot identify the current owner.
+
+See [libplasma ToolTipArea](https://github.com/KDE/libplasma/blob/master/src/declarativeimports/core/tooltiparea.cpp).
+The existing TriangleMouseFilter was inspected but not identified as the cause:
+these failures reproduce without it. Its interactive-preview handoff remains
+unchanged. Exact compositor event ordering in the recording is not reproduced
+by the offscreen test.
+
+`TaskToolTipArea.qml` now prepares shared bindings on `aboutToShow`, covering both
+native transfers and explicit timer openings. The actual binding owner sets
+`toolTipAreaItem`; a dialog visibility broadcast no longer claims ownership.
+The fallback timer also checks whether its task owns the content.
+
+`TaskHoverHandler.qml` shares the existing task hover observation with the capsule
+tracker as well as magnification. It adds no input surface and changes neither
+hit geometry nor zoom calculations. The common-ancestor tracker still observes
+padding, but uses the task's mapped pointer coordinates while native items accept
+hover. Leaving the current source schedules one coalesced refresh so adjacent
+enter/leave ordering cannot clear the new owner. Both paths use the existing
+rounded-capsule entry test and rendering mask. Disabled glow performs no mapping
+or task scan. No periodic timer, shader, blur, indicator or menu changes are needed.
+
+### Regression evidence and remaining desktop checks
+
+`tests/indicators/tst_tooltiphover.qml` uses the installed Plasma ToolTipArea and
+real shared tooltip window, with the production hover and tooltip components.
+Five cases cover horizontal/vertical orientation, interactive/non-interactive
+windows and disabled glow. They exercise repeated native content transfers,
+continuous pointer input, both coordinates, clicks, option changes while
+stationary, rounded-corner exclusion, proximity rejection and leaving the dock.
+Removing either the content hook or task forwarding makes its regression fail.
+Earlier MouseArea and rendered capsule tests remain in place.
+
+Local Qt 6.8.2 / Plasma runtime 6.3 offscreen validation: all four locally available
+CTest suites pass, including the five new scenarios. Native build and QML parsing
+pass. The full KIO application-menu suite requires a D-Bus session unavailable in
+this local sandbox; CI runs that existing suite. This is not full desktop visual
+validation or a claim of Plasma 6.8 Wayland reproduction.
+
+On CachyOS, leave the pointer still until the name/preview opens, then cross several
+pinned and running applications repeatedly without leaving the bar. Check that
+labels/previews, glow color/position and magnification all follow the current
+application. Move into an interactive window preview and back; check media controls,
+grouped previews, context menus and clicks. Repeat with glow/zoom disabled, along
+all panel edges, and after panel hide/show. The light must still activate only
+inside the rounded capsule and fade on exit.
+
+Install the complete plasmoid using `./install.sh` from
+`fix/tooltip-hover-continuity`; accept its Plasma Shell restart prompt. Existing
+configuration and optional native plugins use the established installation path.
