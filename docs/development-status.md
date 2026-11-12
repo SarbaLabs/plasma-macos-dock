@@ -64,5 +64,15 @@ references and whitespace; the PR's checks show the current commit's CI status.
 `fix/tooltip-hover-continuity` addresses stale shared tooltip contents and glow
 loss when native ToolTipArea accepts hover events. See the follow-up section in
 [capsule refinements](capsule-refinements.md) for evidence and regression coverage.
-This correction awaits separate maintainer validation on CachyOS; PR #3 acceptance
-does not imply acceptance of the new fix.
+On 2026-11-13 (Pacific/Noumea), the maintainer confirmed that everything works
+and requested preparation of PR #4 for manual merge. This validates the reported
+tooltip/glow correction on the maintainer's CachyOS desktop, without claiming
+exhaustive coverage of every theme, panel edge or preview variant.
+
+[PR #4](https://github.com/SarbaLabs/plasma-macos-dock/pull/4) is ready for the
+maintainer's manual merge into this fork's master. Release selection remains
+**none**; no automatic merge or version change.
+
+[Implementation CI](https://github.com/SarbaLabs/plasma-macos-dock/actions/runs/43213041215)
+passed the native build, all five CTest suites and staged installation. The final
+acceptance commit changes documentation only.

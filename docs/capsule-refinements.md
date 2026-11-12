@@ -233,3 +233,15 @@ inside the rounded capsule and fade on exit.
 Install the complete plasmoid using `./install.sh` from
 `fix/tooltip-hover-continuity`; accept its Plasma Shell restart prompt. Existing
 configuration and optional native plugins use the established installation path.
+
+### Maintainer acceptance — 2026-11-13
+
+After installing the tooltip correction, the maintainer confirmed that everything
+works and requested PR #4 preparation for manual merge. The reported stale-name
+and disappearing-glow scenario is therefore accepted on the actual CachyOS
+desktop. The broader checklist above remains useful for future regression work;
+this confirmation does not assert that every listed combination was exercised.
+
+Implementation CI passed all five CTest suites, the native build and staged
+installation: [run 43213041215](https://github.com/SarbaLabs/plasma-macos-dock/actions/runs/43213041215).
+No source changes were made after this acceptance; release selection stays none.
