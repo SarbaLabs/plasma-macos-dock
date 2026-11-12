@@ -59,11 +59,12 @@ PlasmaCore.ToolTipArea {
         Plasmoid.configuration.reverseMode, Application.layoutDirection === Qt.RightToLeft)
     readonly property real dividerCenterOffset: (dividerAtEnd ? -1 : 1) * dividerOffset / 2
     property bool glowColorRequested: false
-    readonly property bool glowWanted: !inPopup && tasksRoot.hoverGlowAvailable && isTaskHovered
+    readonly property Item glowHitRegion: hoverHitBox
+    readonly property bool glowWanted: !inPopup && tasksRoot.hoverGlowAvailable
+        && tasksRoot.glowHovering && tasksRoot.glowTask === task
     onGlowWantedChanged: {
         if (glowWanted) {
             glowColorRequested = true;
-            reportGlow(taskHoverHandler.point.position);
         }
     }
     readonly property color dominantIconColor: iconColorsLoader.item && iconColorsLoader.item.colors.dominant.a > 0
@@ -75,12 +76,6 @@ PlasmaCore.ToolTipArea {
                 && Plasmoid.configuration.indicatorColorSource === 1))
         sourceComponent: Item {
             readonly property Kirigami.ImageColors colors: Kirigami.ImageColors { source: task.model.decoration }
-        }
-    }
-    function reportGlow(pos: point): void {
-        if (glowWanted) {
-            const local = taskHoverHandler.parent.mapToItem(task, pos.x, pos.y);
-            tasksRoot.setGlowPosition(task, local);
         }
     }
 
@@ -341,7 +336,6 @@ PlasmaCore.ToolTipArea {
     readonly property int halfSpacing: Math.ceil((tasksRoot ? tasksRoot.iconSpacing : 4) / 2)
 
     function reportContinuousHover(pos: point): void {
-        reportGlow(pos);
         if (!tasksRoot || !tasksRoot.zoomEnabled) {
             return;
         }
@@ -622,7 +616,7 @@ PlasmaCore.ToolTipArea {
             id: taskHoverHandler
             enabled: !task.inPopup
             onPointChanged: {
-                if (hovered && tasksRoot && (tasksRoot.zoomEnabled || tasksRoot.hoverGlowAvailable)) {
+                if (hovered && tasksRoot && tasksRoot.zoomEnabled) {
                     task.reportContinuousHover(point.position);
                 }
             }

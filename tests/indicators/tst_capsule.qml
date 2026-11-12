@@ -74,6 +74,13 @@ TestCase {
             compare(frame.red(0, 0), 0);
             verify(frame.red(Math.floor(size[0] / 2), Math.floor(size[1] / 2)) > 0);
         }
+        // The gradient may follow the cursor above/outside the capsule; its
+        // painted portion must still respect the rounded boundary.
+        obj.effect.pointerX = -5;
+        obj.effect.pointerY = 10;
+        wait(50);
+        compare(grabImage(obj).red(0, 0), 0);
+        verify(grabImage(obj).red(10, 30) > 0);
         obj.effect.cornerRadius = 0;
         wait(50);
         verify(grabImage(obj).red(1, 1) > 0);

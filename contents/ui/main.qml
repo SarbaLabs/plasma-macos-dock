@@ -232,12 +232,21 @@ PlasmoidItem {
     readonly property bool hoverGlowAvailable: Plasmoid.configuration.hoverGlowEnabled && containerBackgroundType !== 1
     property Item glowTask: null
     property point glowPosition: Qt.point(0, 0)
-    function setGlowPosition(item: Item, position: point): void {
-        if (!hoverGlowAvailable) return;
-        glowTask = item;
-        const mapped = item.mapToItem(dockBackground, position.x, position.y);
-        glowPosition = Qt.point(vertical ? dockBackground.width / 2 : mapped.x,
-                                vertical ? mapped.y : dockBackground.height / 2);
+    readonly property bool glowHovering: glowTracker.item !== null && glowTracker.item.hoveredTask !== null
+    Loader {
+        id: glowTracker
+        anchors.fill: parent
+        z: 10000
+        active: tasks.hoverGlowAvailable
+        sourceComponent: CapsuleHoverTracker {
+            capsule: dockBackground
+            taskSource: taskRepeater
+            vertical: tasks.vertical
+            onPositionUpdated: (item, position) => {
+                tasks.glowTask = item;
+                tasks.glowPosition = position;
+            }
+        }
     }
 
     readonly property real screenAvailableLength: {
@@ -839,7 +848,7 @@ PlasmoidItem {
                 anchors.fill: parent
                 radius: CapsuleGeometry.radius(width, height, Plasmoid.configuration.capsuleRadiusCustom, Plasmoid.configuration.capsuleRadius)
                 glowEnabled: Plasmoid.configuration.hoverGlowEnabled
-                glowHovering: tasks.glowTask !== null && tasks.glowTask.isTaskHovered
+                glowHovering: tasks.glowHovering
                 glowPosition: tasks.glowPosition
                 glowColor: tasks.glowTask ? tasks.glowTask.dominantIconColor : Kirigami.Theme.highlightColor
                 glowIntensity: Plasmoid.configuration.hoverGlowIntensity / 100

@@ -40,8 +40,12 @@ only capsule geometry changes rebuild the path. Opacity fades in/out in 140 ms,
 and source color changes blend in 120 ms. Position follows pointer coordinates
 directly to avoid adding lag to magnification.
 
-`Task.qml` maps the existing hover handler's coordinates into the capsule, even
-when zoom is disabled. A shared lazy `Kirigami.ImageColors` instance reads each
+`CapsuleHoverTracker.qml` independently observes hover above the task content
+with a non-blocking HoverHandler, even when zoom is disabled. It maps both X and
+Y into the capsule without snapping either coordinate to its center. Selection
+uses the existing task hit regions, so it does not depend on the tooltip's
+`containsMouse` or `isTaskHovered` state. It handles delegate replacement through
+coalesced Repeater notifications; no timer is introduced. A shared lazy `Kirigami.ImageColors` instance reads each
 application's `model.decoration`, serving both Custom indicators and the glow.
 Visited task colors remain cached while glow is enabled. SVG/raster icon sources
 use Kirigami's native decoder; unavailable colors use the live Plasma accent.
@@ -116,3 +120,20 @@ Update the existing checkout with `git fetch origin`,
 `git switch feature/advanced-dock-indicators`, `git pull --ff-only`, then
 `./install.sh`. Accept its Plasma Shell restart prompt. Install the full plasmoid,
 not only the optional native plugins. Do not create a competing user/system copy.
+
+## Follow-up: running-task hover and two-axis tracking
+
+Desktop feedback identified disappearance over running applications and requested
+true two-axis pointer tracking. The previous halo was gated by task tooltip/hover
+state and explicitly centered one axis. The latter is directly confirmed in the
+old mapping; the exact selective Plasma event sequence is not reproduced in the
+headless environment. The new independent observer removes this coupling and
+leaves task zoom, tooltip, click and context-menu handlers unchanged.
+
+A QML pointer integration test covers a launcher and a running-task fixture with
+indicators and a hover-enabled MouseArea, while `isTaskHovered` remains false.
+It verifies both coordinates, transition between tasks, leave detection, rotated
+coordinate mapping and click delivery through the observer. Rendered pixel tests
+also exercise a gradient center outside the capsule while keeping rounded corners
+unpainted. Confirm the reported running-application case on the real desktop,
+including tooltip previews and any enabled native task frames.
