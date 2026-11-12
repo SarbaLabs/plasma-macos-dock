@@ -154,3 +154,9 @@ activates it. Entry tests include points above/below the capsule, excluded round
 corners, interior/padding and two-axis motion. Existing fade-out is retained after
 leaving; it cannot be newly activated by mere proximity. When disabled the
 observer and its model connections are inactive; there is no visual input layer.
+
+Validation of the magnification follow-up: the continuous-task-hover regression
+failed on the high-z observer and passed after attaching the observer to the
+common ancestor. All four locally available CTest suites passed (10.04 seconds);
+additional capsule-movement and disabled-observer tests passed. Desktop zoom and
+running-task appearance still require maintainer confirmation on Plasma Wayland.

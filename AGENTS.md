@@ -25,3 +25,6 @@
   across visible surfaces and the blur bridge. Glow must fill a rounded path,
   remain optional, and never capture animated icons. Separator spacing follows
   the logical group boundary and the delegate's visual leading edge.
+- Glow pointer observation belongs on the tasks' common ancestor. A high-z sibling
+  can suppress continuous task hover even with blocking:false. Keep regression
+  coverage for hover movement as well as clicks, and gate light on rounded entry.
