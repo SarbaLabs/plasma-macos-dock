@@ -8,6 +8,7 @@ permissions:
   contents: read
 jobs:
   build-and-test:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     container: debian:trixie
     steps:
@@ -21,7 +22,7 @@ jobs:
           cmake -S . -B build -DBUILD_PLUGIN_ONLY=OFF -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build build --parallel 2
       - name: Run offscreen regression tests
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --timeout 90
       - name: Check staged installation
         run: |
           DESTDIR="$PWD/stage" cmake --install build
