@@ -115,6 +115,21 @@ Build tests with `BUILD_TESTING=ON`; CTest runs `indicators` offscreen. Qt Quick
 Test and its QML module are test-only dependencies. CI installs these plus the
 existing Plasma/Kirigami/KSvg/KCM modules and checks a staged full installation.
 
+### Validation record (2026-11-12)
+
+- Local isolated Qt 6.8.2 / KF6 6.13: compilation and four available CTest
+  suites passed (blur, native-menu QML bridge, installer, indicators).
+- GitHub Actions run [43164663165](https://github.com/SarbaLabs/plasma-macos-dock/actions/runs/43164663165):
+  full build, all five CTest suites passed in 9.45 seconds, including actual
+  KIO application launches under D-Bus; staged full installation passed.
+- Indicator suite: eight test functions plus setup/cleanup, including defaults
+  read from the real KConfig XML and compared to configuration-page properties.
+- Follow-up assertions check actual Custom segment placement on all four edges
+  and round dots after switching from square dashes. Disabled Custom indicators
+  also unload the model adapter and icon-color extractor.
+- No live Plasma session was used for acceptance. The local workspace cannot
+  host a D-Bus session; CI provides that coverage, not live compositor coverage.
+
 ## CachyOS installation and acceptance
 
 For a new local tracking branch:

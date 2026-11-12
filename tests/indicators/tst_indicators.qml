@@ -120,10 +120,24 @@ TestCase {
             obj.effectiveEdge = edge;
             compare(obj.edge, edge);
             compare(obj.vertical, edge >= 2);
+            const segment = findChild(obj, "indicatorSegment0");
+            verify(segment !== null);
+            verify(segment.x >= -obj.padding);
+            verify(segment.y >= -obj.padding);
+            verify(segment.x + segment.width <= obj.width + obj.padding);
+            verify(segment.y + segment.height <= obj.height + obj.padding);
+            if (edge === 0) verify(segment.y >= obj.height);
+            if (edge === 1) verify(segment.y + segment.height <= 0);
+            if (edge === 2) verify(segment.x + segment.width <= 0);
+            if (edge === 3) verify(segment.x >= obj.width);
             obj.configuration = {indicatorOverride: true, indicatorEdge: (edge+1)%4, indicatorAnimations: false};
             compare(obj.edge, (edge+1)%4);
             obj.configuration = {indicatorAnimations: false};
         }
+        obj.configuration = {indicatorStyle: 0, indicatorRoundness: 0, indicatorAnimations: false};
+        const dot = findChild(obj, "indicatorSegment0");
+        compare(dot.width, dot.height);
+        compare(dot.radius, dot.width / 2); // Dash roundness must not turn dots into squares.
         obj.accentColor = "red";
         compare(obj.baseColor, Qt.rgba(1,0,0,1));
         obj.configuration = {indicatorColorSource: 1};

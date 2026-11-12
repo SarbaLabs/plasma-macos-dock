@@ -980,6 +980,7 @@ PlasmaCore.ToolTipArea {
         width: task.width - x
         height: task.height - y
         active: !task.inPopup && task.indicatorMode === 2 && task.isRunning
+            && Plasmoid.configuration.customIndicatorsEnabled !== false
         sourceComponent: CustomIndicators {
             id: customIndicators
             configuration: Plasmoid.configuration
