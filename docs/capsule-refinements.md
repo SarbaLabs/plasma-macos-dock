@@ -40,10 +40,11 @@ only capsule geometry changes rebuild the path. Opacity fades in/out in 140 ms,
 and source color changes blend in 120 ms. Position follows pointer coordinates
 directly to avoid adding lag to magnification.
 
-`CapsuleHoverTracker.qml` independently observes hover above the task content
+`CapsuleHoverTracker.qml` independently observes hover from the tasks' common ancestor
 with a non-blocking HoverHandler, even when zoom is disabled. It maps both X and
 Y into the capsule without snapping either coordinate to its center. Selection
-uses the existing task hit regions, so it does not depend on the tooltip's
+first checks the capsule's actual rounded bounds, then chooses the nearest visible
+task along the dock axis (including capsule padding). It does not depend on the tooltip's
 `containsMouse` or `isTaskHovered` state. It handles delegate replacement through
 coalesced Repeater notifications; no timer is introduced. A shared lazy `Kirigami.ImageColors` instance reads each
 application's `model.decoration`, serving both Custom indicators and the glow.
@@ -137,3 +138,19 @@ coordinate mapping and click delivery through the observer. Rendered pixel tests
 also exercise a gradient center outside the capsule while keeping rounded corners
 unpainted. Confirm the reported running-application case on the real desktop,
 including tooltip previews and any enabled native task frames.
+
+## Follow-up: preserve magnification hover delivery
+
+The previous high-z sibling observer allowed clicks but prevented continuous
+HoverHandler updates in underlying tasks. A new regression test reproduced this
+failure before the fix; testing clicks alone was insufficient. The observer is
+now itself a HoverHandler directly attached to the common ancestor, with no
+higher-stacked item or reparented child handler. The regression passes with the
+observer enabled and disabled; task magnification handlers remain unchanged.
+
+Glow activation now requires the pointer tip inside the capsule's rounded shape,
+using the same clamped corner radius. The larger magnification hit area no longer
+activates it. Entry tests include points above/below the capsule, excluded rounded
+corners, interior/padding and two-axis motion. Existing fade-out is retained after
+leaving; it cannot be newly activated by mere proximity. When disabled the
+observer and its model connections are inactive; there is no visual input layer.

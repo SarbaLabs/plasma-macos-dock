@@ -59,7 +59,6 @@ PlasmaCore.ToolTipArea {
         Plasmoid.configuration.reverseMode, Application.layoutDirection === Qt.RightToLeft)
     readonly property real dividerCenterOffset: (dividerAtEnd ? -1 : 1) * dividerOffset / 2
     property bool glowColorRequested: false
-    readonly property Item glowHitRegion: hoverHitBox
     readonly property bool glowWanted: !inPopup && tasksRoot.hoverGlowAvailable
         && tasksRoot.glowHovering && tasksRoot.glowTask === task
     onGlowWantedChanged: {

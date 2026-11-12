@@ -232,20 +232,17 @@ PlasmoidItem {
     readonly property bool hoverGlowAvailable: Plasmoid.configuration.hoverGlowEnabled && containerBackgroundType !== 1
     property Item glowTask: null
     property point glowPosition: Qt.point(0, 0)
-    readonly property bool glowHovering: glowTracker.item !== null && glowTracker.item.hoveredTask !== null
-    Loader {
+    readonly property bool glowHovering: glowTracker.hoveredTask !== null
+    CapsuleHoverTracker {
         id: glowTracker
-        anchors.fill: parent
-        z: 10000
-        active: tasks.hoverGlowAvailable
-        sourceComponent: CapsuleHoverTracker {
-            capsule: dockBackground
-            taskSource: taskRepeater
-            vertical: tasks.vertical
-            onPositionUpdated: (item, position) => {
-                tasks.glowTask = item;
-                tasks.glowPosition = position;
-            }
+        enabled: tasks.hoverGlowAvailable
+        cornerRadius: dockBackground.effectiveRadius
+        capsule: dockBackground
+        taskSource: taskRepeater
+        vertical: tasks.vertical
+        onPositionUpdated: (item, position) => {
+            tasks.glowTask = item;
+            tasks.glowPosition = position;
         }
     }
 

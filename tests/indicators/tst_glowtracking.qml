@@ -15,9 +15,11 @@ TestCase {
             id: scene
             width: 240; height: 120
             property alias tracker: tracker
+            property alias capsuleItem: capsule
             property point lastPosition: Qt.point(-1, -1)
             property Item lastTask: null
             property int clicks: 0
+            property int hoverMoves: 0
             Item { id: capsule; x: 10; y: 20; width: 200; height: 70 }
             Repeater {
                 id: tasks
@@ -28,15 +30,14 @@ TestCase {
                     color: index === 0 ? "blue" : "green"
                     property bool isRunning: index === 1
                     property bool isTaskHovered: false // Tooltip state must not gate the light.
-                    readonly property Item glowHitRegion: this
+                    HoverHandler { onPointChanged: if (hovered) scene.hoverMoves++ }
                     MouseArea { anchors.fill: parent; hoverEnabled: true; onClicked: scene.clicks++ }
                     Rectangle { visible: parent.isRunning; width: 4; height: 4; y: 80 }
                 }
             }
             Dock.CapsuleHoverTracker {
                 id: tracker
-                anchors.fill: parent
-                z: 10000
+                cornerRadius: 15
                 capsule: capsule
                 taskSource: tasks
                 onPositionUpdated: (task, position) => { scene.lastTask = task; scene.lastPosition = position; }
@@ -59,6 +60,46 @@ TestCase {
         compare(scene.lastPosition, Qt.point(130, 60));
         mouseMove(scene, 230, 110);
         tryCompare(scene.tracker, "hoveredTask", null);
+    }
+    function test_onlyInsideCapsule() {
+        const scene = createTemporaryObject(fixture, testCase);
+        mouseMove(scene, 40, 15); // Inside the enlarged task hit region, above the bar.
+        compare(scene.tracker.hoveredTask, null);
+        mouseMove(scene, 11, 21); // Inside its rectangular bounds, outside the rounded corner.
+        compare(scene.tracker.hoveredTask, null);
+        mouseMove(scene, 40, 25);
+        tryVerify(() => scene.tracker.hoveredTask !== null);
+        mouseMove(scene, 15, 55); // Capsule padding still selects the nearest application.
+        tryVerify(() => scene.tracker.hoveredTask !== null);
+        mouseMove(scene, 40, 95);
+        compare(scene.tracker.hoveredTask, null);
+    }
+    function test_capsuleMovementKeepsPointerMapping() {
+        const scene = createTemporaryObject(fixture, testCase);
+        mouseMove(scene, 40, 40);
+        tryCompare(scene, "lastPosition", Qt.point(30, 20));
+        scene.capsuleItem.x = 15;
+        tryCompare(scene, "lastPosition", Qt.point(25, 20));
+        scene.capsuleItem.y = 60;
+        tryCompare(scene.tracker, "hoveredTask", null);
+    }
+    function test_disabledTrackerLeavesTaskHoverWorking() {
+        const scene = createTemporaryObject(fixture, testCase);
+        mouseMove(scene, 40, 40);
+        tryVerify(() => scene.tracker.hoveredTask !== null);
+        scene.tracker.enabled = false;
+        compare(scene.tracker.hoveredTask, null);
+        const initial = scene.hoverMoves;
+        for (let x = 45; x < 80; x += 5) mouseMove(scene, x, 40);
+        verify(scene.hoverMoves >= initial + 5);
+        compare(scene.tracker.hoveredTask, null);
+    }
+    function test_continuousTaskHover() {
+        const scene = createTemporaryObject(fixture, testCase);
+        mouseMove(scene, 30, 40);
+        const initial = scene.hoverMoves;
+        for (let x = 40; x < 80; x += 5) mouseMove(scene, x, 40);
+        verify(scene.hoverMoves >= initial + 6, "Task hover must keep receiving pointer movement");
     }
     function test_mappingBothAxesAndRotation() {
         const scene = createTemporaryObject(fixture, testCase);
