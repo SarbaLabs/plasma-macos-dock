@@ -80,7 +80,9 @@ private Q_SLOTS:
         const QString path = apps + QStringLiteral("/dock-menu-test.desktop");
         QFile desktop(path);
         QVERIFY(desktop.open(QIODevice::WriteOnly));
-        desktop.write("[Desktop Entry]\nType=Application\nName=Menu Test\nIcon=system-file-manager\nCategories=FileManager;\nMimeType=inode/directory;\nExec=\"" DOCK_MENU_PROBE "\" %U\nActions=Private;Profile;Hidden;\n\n[Desktop Action Private]\nName=New Private Window\nIcon=window-new\nExec=\"" DOCK_MENU_PROBE "\" --private\n\n[Desktop Action Profile]\nName=Open Profile Manager\nExec=\"" DOCK_MENU_PROBE "\" --profile \"Profile With Spaces\"\n\n[Desktop Action Hidden]\nName=Hidden Action\nNoDisplay=true\nExec=true\n");
+        // Like Dolphin, advertise KDE URL support so KIO passes sftp URLs
+        // directly instead of trying to download them for a local-only app.
+        desktop.write("[Desktop Entry]\nType=Application\nName=Menu Test\nIcon=system-file-manager\nCategories=KDE;FileManager;\nMimeType=inode/directory;\nExec=\"" DOCK_MENU_PROBE "\" %U\nActions=Private;Profile;Hidden;\n\n[Desktop Action Private]\nName=New Private Window\nIcon=window-new\nExec=\"" DOCK_MENU_PROBE "\" --private\n\n[Desktop Action Profile]\nName=Open Profile Manager\nExec=\"" DOCK_MENU_PROBE "\" --profile \"Profile With Spaces\"\n\n[Desktop Action Hidden]\nName=Hidden Action\nNoDisplay=true\nExec=true\n");
         desktop.close();
         QCOMPARE(QProcess::execute(QStringLiteral(DOCK_KBUILDSYCOCA), {QStringLiteral("--noincremental")}), 0);
         launcher = QUrl::fromLocalFile(path);
