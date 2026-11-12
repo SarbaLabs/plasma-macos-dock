@@ -15,7 +15,7 @@ jobs:
       - name: Install build and test dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends ca-certificates git cmake g++ make extra-cmake-modules qt6-base-dev qt6-declarative-dev libkf6windowsystem-dev libplasma-dev libkf6kio-dev libkf6service-dev libkf6notifications-dev libkf6i18n-dev libplasmaactivitiesstats-dev dbus-x11 python3 qml6-module-qtquick qml6-module-qtqml-workerscript
+          apt-get install -y --no-install-recommends ca-certificates git cmake g++ make extra-cmake-modules qt6-base-dev qt6-declarative-dev libkf6windowsystem-dev libplasma-dev libkf6kio-dev libkf6service-dev libkf6notifications-dev libkf6i18n-dev libplasmaactivitiesstats-dev dbus-x11 python3 qml6-module-qtquick qml6-module-qtqml-workerscript qml6-module-qttest qml6-module-org-kde-ksvg qml6-module-org-kde-kcmutils qml6-module-qtquick-shapes qml6-module-qtquick-dialogs qml6-module-org-kde-kirigami qml6-module-qtquick-controls qml6-module-qtquick-layouts qml6-module-qtquick-window qml6-module-qtquick-templates qml6-module-qtqml-models
       - uses: actions/checkout@v4
       - name: Build native plugin and regression tests
         run: |
@@ -27,3 +27,5 @@ jobs:
         run: |
           DESTDIR="$PWD/stage" cmake --install build
           test -f stage/usr/share/plasma/plasmoids/com.github.mattanis.macosdock/contents/ui/NativeApplicationMenuBackend.qml
+          test -f stage/usr/share/plasma/plasmoids/com.github.mattanis.macosdock/contents/ui/CustomIndicators.qml
+          test -f stage/usr/share/plasma/plasmoids/com.github.mattanis.macosdock/contents/ui/ConfigIndicators.qml

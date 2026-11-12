@@ -51,3 +51,11 @@ endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME installer-workflow COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/installtest.py ${CMAKE_SOURCE_DIR})
+
+find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS QuickTest)
+add_executable(indicatortest indicatortest.cpp)
+find_package(KF6I18n REQUIRED)
+target_link_libraries(indicatortest PRIVATE Qt6::QuickTest Qt6::Qml KF6::I18n)
+target_compile_definitions(indicatortest PRIVATE DOCK_CONFIG_SCHEMA="${CMAKE_SOURCE_DIR}/contents/config/main.xml")
+add_test(NAME indicators COMMAND indicatortest -input ${CMAKE_CURRENT_SOURCE_DIR}/indicators)
+set_tests_properties(indicators PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

@@ -15,8 +15,14 @@ ConfigModel {
          source: "ConfigAppearance.qml"
     }
     ConfigCategory {
+         name: i18nc("@title:group for configuration dialog page", "Indicators")
+         icon: "view-visible"
+         source: "ConfigIndicators.qml"
+    }
+    ConfigCategory {
          name: i18nc("@title:group for configuration dialog page", "Behavior")
          icon: "preferences-desktop"
          source: "ConfigBehavior.qml"
     }
 }
+

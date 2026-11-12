@@ -1,5 +1,11 @@
 # Blur restoration after panel transitions
 
+> **Status (2026-11-12):** See [development status](development-status.md) for
+> maintainer acceptance and merge readiness. Earlier pending checks below record
+> the investigation history; they do not override the latest acceptance decision.
+> For current installation/update instructions, use [README](../README.md#installation).
+
+
 ## Scope and evidence
 
 Reported environment: CachyOS, Plasma 6.8, Wayland, bottom panel in Dodge

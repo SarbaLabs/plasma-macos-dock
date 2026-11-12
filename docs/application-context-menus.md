@@ -1,5 +1,11 @@
 # Native application context menus
 
+> **Status (2026-11-12):** See [development status](development-status.md) for
+> maintainer acceptance and merge readiness. Earlier pending checks below record
+> the investigation history; they do not override the latest acceptance decision.
+> For current installation/update instructions, use [README](../README.md#installation).
+
+
 ## Scope and architecture
 
 The original QML backend returned empty lists from jumpListActions, placesActions
@@ -105,20 +111,19 @@ claim of graphical validation.
 
 ## Installation on CachyOS
 
-For an existing checkout, after fetching/checking out the feature branch:
+PR #2 is merged. For an existing checkout on the maintained stable branch:
 
 ```bash
 cd ~/git/plasma-macos-dock
 git fetch origin
-git switch --track origin/feature/native-application-context-menus
+git switch master
 paru -S --needed cmake gcc extra-cmake-modules qt6-base qt6-declarative kwindowsystem libplasma kio kservice ki18n knotifications plasma-activities-stats python
 git pull --ff-only
 ./install.sh
 ctest --test-dir build --output-on-failure
 ```
 
-If the local feature branch already exists, use `git switch
-feature/native-application-context-menus` instead of `--track`.
+Use the current PR branch instead of `master` when testing unmerged changes.
 
 Use the full installer for the first menu update: both the QML bridge and native
 module are needed. `--plugin-only` cannot add the bridge to old QML.
@@ -161,4 +166,5 @@ reboot is needed. Restart may briefly remove panels and the desktop.
 - On a pure-QML installation without the menu module, verify that the existing
   menu, Pin/Unpin, bounce and configuration actions still work without errors.
 
-Do not merge or release until the maintainer has validated the desktop behavior.
+PR #2 was tested and merged by the maintainer. Keep this checklist for future
+regressions; publication of a release requires a separate explicit decision.

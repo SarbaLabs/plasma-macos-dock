@@ -20,6 +20,7 @@ import org.kde.plasma.workspace.trianglemousefilter
 import org.kde.taskmanager as TaskManager
 import "code/LayoutMetrics.js" as LayoutMetrics
 import "code/TaskTools.js" as TaskTools
+import "code/CapsuleGeometry.js" as CapsuleGeometry
 import org.kde.plasma.workspace.dbus as DBus
 
 PlasmoidItem {
@@ -216,17 +217,34 @@ PlasmoidItem {
 
     readonly property int dividerSpan: 16
 
-    readonly property int firstUnpinnedIndex: {
+    property int dividerRevision: 0
+    readonly property int dividerIndex: {
+        const revision = dividerRevision;
+        const pinned = [];
         for (let i = 0; i < taskRepeater.count; ++i) {
             const item = taskRepeater.itemAt(i) as Task;
-            if (item && item.model && !item.isPinned) {
-                return i;
-            }
+            if (!item) return -1;
+            pinned.push(item.isPinned);
         }
-        return -1;
+        return CapsuleGeometry.boundary(pinned);
     }
-
-    readonly property bool hasDivider: firstUnpinnedIndex > 0
+    readonly property bool hasDivider: dividerIndex > 0
+    readonly property bool hoverGlowAvailable: Plasmoid.configuration.hoverGlowEnabled && containerBackgroundType !== 1
+    property Item glowTask: null
+    property point glowPosition: Qt.point(0, 0)
+    readonly property bool glowHovering: glowTracker.hoveredTask !== null
+    CapsuleHoverTracker {
+        id: glowTracker
+        enabled: tasks.hoverGlowAvailable
+        cornerRadius: dockBackground.effectiveRadius
+        capsule: dockBackground
+        taskSource: taskRepeater
+        vertical: tasks.vertical
+        onPositionUpdated: (item, position) => {
+            tasks.glowTask = item;
+            tasks.glowPosition = position;
+        }
+    }
 
     readonly property real screenAvailableLength: {
         let fullLength = 0;
@@ -825,7 +843,14 @@ PlasmoidItem {
             LiquidGlassBackground {
                 id: dockBackground
                 anchors.fill: parent
-                radius: Math.min(width, height) / 3
+                radius: CapsuleGeometry.radius(width, height, Plasmoid.configuration.capsuleRadiusCustom, Plasmoid.configuration.capsuleRadius)
+                glowEnabled: Plasmoid.configuration.hoverGlowEnabled
+                glowHovering: tasks.glowHovering
+                glowPosition: tasks.glowPosition
+                glowColor: tasks.glowTask ? tasks.glowTask.dominantIconColor : Kirigami.Theme.highlightColor
+                glowIntensity: Plasmoid.configuration.hoverGlowIntensity / 100
+                glowRadius: Plasmoid.configuration.hoverGlowRadius
+                glowOpacity: Plasmoid.configuration.hoverGlowOpacity / 100
                 backgroundType: tasks.containerBackgroundType
                 customBackgroundColor: tasks.containerBackgroundColor
                 customBorderWidth: tasks.containerBorderWidth
@@ -859,6 +884,8 @@ PlasmoidItem {
 
                 Repeater {
                     id: taskRepeater
+                    onItemAdded: tasks.dividerRevision++
+                    onItemRemoved: tasks.dividerRevision++
 
                     delegate: Task {
                         tasksRoot: tasks

@@ -6,6 +6,203 @@
   <kcfgfile name=""/>
 
   <group name="General">
+    <entry name="indicatorUnfocusedColorEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="indicatorUnfocusedColor" type="Color">
+      <default>#3daee9</default>
+    </entry>
+    <entry name="hoverGlowEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="hoverGlowIntensity" type="Int">
+      <default>100</default>
+      <min>0</min>
+      <max>200</max>
+    </entry>
+    <entry name="hoverGlowRadius" type="Int">
+      <default>70</default>
+      <min>1</min>
+      <max>256</max>
+    </entry>
+    <entry name="hoverGlowOpacity" type="Int">
+      <default>30</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
+    <entry name="capsuleRadiusCustom" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="capsuleRadius" type="Int">
+      <default>10</default>
+      <min>0</min>
+      <max>200</max>
+    </entry>
+    <entry name="indicatorMode" type="Int">
+      <label>Indicator mode</label>
+      <default>0</default>
+      <min>0</min>
+      <max>2</max>
+    </entry>
+    <entry name="nativeGroupIndicator" type="Int">
+      <label>Native group symbol</label>
+      <default>0</default>
+      <min>0</min>
+      <max>2</max>
+    </entry>
+    <entry name="taskDecorations" type="Int">
+      <label>Plasma task decorations</label>
+      <default>0</default>
+      <min>0</min>
+      <max>2</max>
+    </entry>
+    <entry name="customIndicatorsEnabled" type="Bool">
+      <label>Show running indicators</label>
+      <default>true</default>
+    </entry>
+    <entry name="indicatorAnimations" type="Bool">
+      <label>Animate state changes</label>
+      <default>true</default>
+    </entry>
+    <entry name="indicatorStyle" type="Int">
+      <label>Style</label>
+      <default>0</default>
+      <min>0</min>
+      <max>2</max>
+    </entry>
+    <entry name="indicatorOverride" type="Bool">
+      <label>Override indicator position</label>
+      <default>false</default>
+    </entry>
+    <entry name="indicatorEdge" type="Int">
+      <label>Position</label>
+      <default>0</default>
+      <min>0</min>
+      <max>3</max>
+    </entry>
+    <entry name="indicatorEdgeDistance" type="Int">
+      <label>Distance from capsule edge (px)</label>
+      <default>2</default>
+      <min>0</min>
+      <max>32</max>
+    </entry>
+    <entry name="indicatorThickness" type="Int">
+      <label>Inactive thickness (px)</label>
+      <default>4</default>
+      <min>1</min>
+      <max>24</max>
+    </entry>
+    <entry name="indicatorLength" type="Int">
+      <label>Inactive length (px)</label>
+      <default>12</default>
+      <min>1</min>
+      <max>160</max>
+    </entry>
+    <entry name="indicatorRoundness" type="Int">
+      <label>Corner roundness (%)</label>
+      <default>100</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
+    <entry name="indicatorSpacing" type="Int">
+      <label>Segment spacing (px)</label>
+      <default>2</default>
+      <min>0</min>
+      <max>16</max>
+    </entry>
+    <entry name="indicatorAlignment" type="Int">
+      <label>Thickness alignment</label>
+      <default>1</default>
+      <min>0</min>
+      <max>2</max>
+    </entry>
+    <entry name="indicatorResizeActive" type="Bool">
+      <label>Resize on activation</label>
+      <default>true</default>
+    </entry>
+    <entry name="indicatorActiveThickness" type="Int">
+      <label>Active thickness (px)</label>
+      <default>5</default>
+      <min>1</min>
+      <max>24</max>
+    </entry>
+    <entry name="indicatorActiveLength" type="Int">
+      <label>Active length (px)</label>
+      <default>20</default>
+      <min>1</min>
+      <max>160</max>
+    </entry>
+    <entry name="indicatorResizeHover" type="Bool">
+      <label>Resize on hover</label>
+      <default>false</default>
+    </entry>
+    <entry name="indicatorHoverSeparate" type="Bool">
+      <label>Use separate hover dimensions</label>
+      <default>true</default>
+    </entry>
+    <entry name="indicatorHoverThickness" type="Int">
+      <label>Hover thickness (px)</label>
+      <default>6</default>
+      <min>1</min>
+      <max>24</max>
+    </entry>
+    <entry name="indicatorHoverLength" type="Int">
+      <label>Hover length (px)</label>
+      <default>24</default>
+      <min>1</min>
+      <max>160</max>
+    </entry>
+    <entry name="indicatorGroupSeparate" type="Bool">
+      <label>Use separate grouped dimensions</label>
+      <default>false</default>
+    </entry>
+    <entry name="indicatorGroupThickness" type="Int">
+      <label>Grouped thickness (px)</label>
+      <default>4</default>
+      <min>1</min>
+      <max>24</max>
+    </entry>
+    <entry name="indicatorGroupLength" type="Int">
+      <label>Grouped length (px)</label>
+      <default>8</default>
+      <min>1</min>
+      <max>160</max>
+    </entry>
+    <entry name="indicatorMaxSegments" type="Int">
+      <label>Maximum window segments</label>
+      <default>4</default>
+      <min>1</min>
+      <max>8</max>
+    </entry>
+
+    <entry name="indicatorHighlightActive" type="Bool">
+      <label>Highlight the active window in a group</label>
+      <default>true</default>
+    </entry>
+    <entry name="indicatorDimInactive" type="Bool">
+      <label>Dim inactive segments</label>
+      <default>true</default>
+    </entry>
+    <entry name="indicatorInactiveOpacity" type="Int">
+      <label>Inactive opacity (%)</label>
+      <default>55</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
+    <entry name="indicatorDesaturate" type="Bool">
+      <label>Desaturate minimized windows</label>
+      <default>false</default>
+    </entry>
+    <entry name="indicatorColorSource" type="Int">
+      <label>Indicator color</label>
+      <default>0</default>
+      <min>0</min>
+      <max>2</max>
+    </entry>
+    <entry name="indicatorCustomColor" type="Color">
+      <label>Custom color</label>
+      <default>#3daee9</default>
+    </entry>
     <entry name="showOnlyCurrentScreen" type="Bool">
       <label>Whether to show only window tasks that are on the same screen as the widget.</label>
       <default>false</default>
@@ -256,4 +453,5 @@
   </group>
 
 </kcfg>
+
 
